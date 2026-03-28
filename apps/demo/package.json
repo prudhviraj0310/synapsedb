@@ -10,12 +10,14 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "@synapsedb/sdk": "*",
     "@synapsedb/core": "*",
-    "@synapsedb/plugin-postgres": "*",
     "@synapsedb/plugin-mongodb": "*",
+    "@synapsedb/plugin-postgres": "*",
     "@synapsedb/plugin-redis": "*",
-    "@synapsedb/plugin-vector": "*"
+    "@synapsedb/plugin-vector": "*",
+    "@synapsedb/sdk": "*",
+    "chalk": "^4.1.2",
+    "inquirer": "^9.3.8"
   },
   "devDependencies": {
     "tsx": "^4.19.0"

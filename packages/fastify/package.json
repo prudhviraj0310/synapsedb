@@ -1,0 +1,22 @@
+{
+  "name": "@synapsedb/fastify",
+  "version": "0.2.0",
+  "description": "Fastify framework plugin hooks for SynapseDB Data OS",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "@synapsedb/core": "*",
+    "fastify": "^4.0.0 || ^5.0.0"
+  },
+  "devDependencies": {
+    "fastify": "^5.0.0",
+    "typescript": "^5.4.2"
+  }
+}

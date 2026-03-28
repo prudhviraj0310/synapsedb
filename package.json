@@ -6,8 +6,12 @@
   "author": "OmniDB Contributors",
   "license": "MIT",
   "workspaces": [
+    "packages/cli",
     "packages/sdk",
     "packages/core",
+    "packages/express",
+    "packages/nextjs",
+    "packages/fastify",
     "packages/plugins/plugin-postgres",
     "packages/plugins/plugin-mongodb",
     "packages/plugins/plugin-redis",
@@ -15,6 +19,7 @@
     "apps/demo"
   ],
   "scripts": {
+    "start": "npx tsx apps/demo/src/launch.ts",
     "build": "npm run build --workspaces --if-present",
     "dev": "npm run dev -w packages/core",
     "test": "npm run test --workspaces --if-present",

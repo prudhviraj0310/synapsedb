@@ -1,0 +1,14 @@
+{
+  "name": "example-realtime",
+  "version": "1.0.0",
+  "description": "Example SynapseDB App: Local Node Edge Sync",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@synapsedb/core": "*",
+    "@synapsedb/plugin-redis": "*"
+  }
+}

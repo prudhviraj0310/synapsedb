@@ -5,6 +5,7 @@
 export { SynapseEngine, OmniDBEngine } from './engine.js';
 export { createServer, startServer } from './server.js';
 export { createLogger } from './logger.js';
+export { SynapseError } from './error.js';
 
 // Sub-modules
 export * from './plugin/index.js';

@@ -1,0 +1,83 @@
+---
+title: "Quickstart: Add Caching to Postgres in 5 Minutes"
+description: Turn expensive database queries into 0ms cached reads instantly.
+template: doc
+---
+
+**Before:**
+```typescript
+// 45ms latency. Hits the database on every single page load.
+const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+```
+
+**After:**
+```typescript
+// 0ms latency on repeat reads. Auto-cached in Redis. Zero code changes required.
+const user = await db.findOne('users', { id: userId });
+```
+
+Here's exactly how to switch. It takes 3 minutes.
+
+---
+
+### Step 1: Install SynapseDB
+
+Run the setup wizard in the terminal of your existing project:
+
+```bash
+npx synapsedb init
+```
+
+*Select **PostgreSQL** (your database) and **Redis** (for caching) when prompted.*
+
+### Step 2: Introspect your existing database
+
+You don't need to manually translate your database schema. SynapseDB reads your existing Postgres database directly and generates a schema manifest.
+
+```bash
+npx synapsedb introspect --database "postgresql://localhost/your_db"
+```
+*This creates a `src/schemas/users.ts` file automatically.*
+
+### Step 3: Turn on Auto-Caching
+
+Open the generated `users.ts` schema file. Add **one single line** to the top:
+
+```typescript
+// src/schemas/users.ts
+import { defineManifest } from '@synapsedb/core';
+
+export default defineManifest('users', {
+  cached: true, // ← Add this line!
+  ttl: 60,      // (Optional) Expire after 60 seconds
+  fields: {
+    // ... auto-generated fields ...
+  }
+});
+```
+
+### Step 4: Replace your queries
+
+Swap out your `pg` pool queries with the SynapseDB client. 
+
+```typescript
+import { db } from './src/db';
+
+export async function getUser(userId: string) {
+  // 1st request: Automatically falls back to Postgres (45ms)
+  // 2nd request: Automatically served from Redis (0ms)
+  // If Postgres goes down, stale cache is served automatically.
+  return await db.findOne('users', { id: userId });
+}
+```
+
+**You're done.** You just added enterprise-grade caching, read-through fallbacks, and circuit breakers to your Postgres connection in exactly 4 lines of code.
+
+### Bonus: See it working live
+
+Want proof? Run the local telemetry studio to watch your cache hit rates go up in real-time.
+
+```bash
+npx synapsedb studio
+```
+*Open `http://localhost:4000` to watch your read-latency drop to zero.*

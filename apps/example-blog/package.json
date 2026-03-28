@@ -1,0 +1,17 @@
+{
+  "name": "example-blog",
+  "version": "1.0.0",
+  "description": "Example SynapseDB App: Auto-caching Blog",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@synapsedb/core": "*",
+    "@synapsedb/express": "*",
+    "@synapsedb/plugin-postgres": "*",
+    "@synapsedb/plugin-redis": "*",
+    "express": "^4.19.0"
+  }
+}

@@ -1,6 +1,7 @@
 // ──────────────────────────────────────────────────────────────
-// SynapseDB — PostgreSQL Storage Plugin
-// Implements IStoragePlugin for PostgreSQL via `pg` driver.
+// @synapsedb/plugin-postgres
+// The official PostgreSQL driver for SynapseDB Data OS.
+// Connects the core orchestration engine to a real PostgreSQL Pool.
 // ──────────────────────────────────────────────────────────────
 
 import type {
@@ -17,51 +18,47 @@ import type {
   Logger,
   FieldDescriptor,
 } from '@synapsedb/core/types';
-import type { IStoragePlugin } from '@synapsedb/core/plugin/contract';
+import type { IStoragePlugin } from '@synapsedb/core';
+import { SynapseError } from '@synapsedb/core';
+import pg from 'pg';
 
-// We use dynamic imports to avoid hard dependency
-let pg: typeof import('pg') | null = null;
-
-type Pool = InstanceType<typeof import('pg').Pool>;
-
-/**
- * PostgresPlugin — SQL Master Plugin
- *
- * Handles strict, transactional data with ACID guarantees.
- * Automatically creates tables and indexes from manifests.
- */
 export class PostgresPlugin implements IStoragePlugin {
   readonly name = 'postgres';
   readonly type: StorageType = 'sql';
 
-  private pool: Pool | null = null;
+  private pool: pg.Pool | null = null;
   private logger: Logger | null = null;
+  private config: PluginConfig;
+
+  constructor(config: PluginConfig) {
+    this.config = config;
+  }
 
   async connect(config: PluginConfig, logger: Logger): Promise<void> {
     this.logger = logger;
+    this.config = { ...this.config, ...config };
 
     try {
-      pg = await import('pg');
-    } catch {
-      throw new Error('PostgreSQL driver not found. Install it with: npm install pg');
+      this.pool = new pg.Pool({
+        connectionString: this.config.connectionUri,
+        host: this.config.host ?? 'localhost',
+        port: this.config.port ?? 5432,
+        database: this.config.database ?? 'postgres',
+        user: this.config.username,
+        password: this.config.password,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        ssl: (this.config as any).ssl ? { rejectUnauthorized: false } : undefined,
+      });
+
+      // Test connection
+      const client = await this.pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      this.logger?.info('PostgreSQL connected successfully.');
+    } catch (err: any) {
+      throw new SynapseError('PLUGIN_CONNECTION_FAILED', err.message);
     }
-
-    this.pool = new pg.Pool({
-      connectionString: config.connectionUri,
-      host: config.host ?? 'localhost',
-      port: config.port ?? 5432,
-      database: config.database ?? 'omnidb',
-      user: config.username,
-      password: config.password,
-      min: config.pool?.min ?? 2,
-      max: config.pool?.max ?? 10,
-      idleTimeoutMillis: config.pool?.idleTimeoutMs ?? 30000,
-    });
-
-    // Test connection
-    const client = await this.pool.connect();
-    client.release();
-    logger.info('PostgreSQL connected');
   }
 
   async disconnect(): Promise<void> {
@@ -80,236 +77,274 @@ export class PostgresPlugin implements IStoragePlugin {
     try {
       await this.pool.query('SELECT 1');
       return { healthy: true, latencyMs: Date.now() - start };
-    } catch (error) {
+    } catch (err: any) {
       return {
         healthy: false,
         latencyMs: Date.now() - start,
-        message: error instanceof Error ? error.message : String(error),
+        message: err.message,
       };
     }
   }
 
   async syncSchema(manifest: CollectionManifest, fields: string[]): Promise<void> {
-    if (!this.pool) throw new Error('Not connected');
+    if (!this.pool) throw new SynapseError('PLUGIN_CONNECTION_FAILED', 'Not connected');
 
     const columns = fields
       .map((fieldName) => {
         const desc = manifest.fields[fieldName];
         if (!desc) return null;
-        return `  "${fieldName}" ${mapFieldToSQL(fieldName, desc)}`;
+        let colDef = `"${fieldName}" ${mapFieldToSQL(fieldName, desc)}`;
+        if (desc.primary) colDef += ' PRIMARY KEY';
+        if (desc.unique) colDef += ' UNIQUE';
+        if (desc.required && !desc.primary) colDef += ' NOT NULL';
+        return colDef;
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .join(',\n  ');
 
-    // Always include id column
-    const hasIdColumn = fields.some((f) => {
-      const desc = manifest.fields[f];
-      return desc?.primary;
-    });
+    if (!columns) return;
 
-    if (!hasIdColumn) {
-      columns.unshift('  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid()');
+    const sql = `
+CREATE TABLE IF NOT EXISTS "${manifest.name}" (
+  ${columns}
+);`;
+
+    try {
+      await this.pool.query(sql);
+      this.logger?.debug(`Synced schema for table: ${manifest.name}`);
+    } catch (err: any) {
+      throw new SynapseError('PLUGIN_QUERY_FAILED', `Failed to sync schema: ${err.message}`);
     }
-
-    // Add timestamp columns if configured
-    if (manifest.options?.timestamps) {
-      columns.push('  "createdAt" TIMESTAMPTZ DEFAULT NOW()');
-      columns.push('  "updatedAt" TIMESTAMPTZ DEFAULT NOW()');
-    }
-
-    const createSQL = `CREATE TABLE IF NOT EXISTS "${manifest.name}" (\n${columns.join(',\n')}\n)`;
-
-    await this.pool.query(createSQL);
-
-    // Create indexes
-    for (const fieldName of fields) {
-      const desc = manifest.fields[fieldName];
-      if (!desc) continue;
-
-      if (desc.indexed && !desc.primary && !desc.unique) {
-        await this.pool.query(
-          `CREATE INDEX IF NOT EXISTS "idx_${manifest.name}_${fieldName}" ON "${manifest.name}" ("${fieldName}")`,
-        );
-      }
-
-      if (desc.unique && !desc.primary) {
-        await this.pool.query(
-          `CREATE UNIQUE INDEX IF NOT EXISTS "udx_${manifest.name}_${fieldName}" ON "${manifest.name}" ("${fieldName}")`,
-        );
-      }
-    }
-
-    this.logger?.info(`Schema synced for table: ${manifest.name}`);
   }
 
   async insert(collection: string, docs: Document[], fields: string[]): Promise<InsertResult> {
-    if (!this.pool) throw new Error('Not connected');
-    if (docs.length === 0) return { insertedCount: 0, insertedIds: [] };
-
-    const insertFields = fields.filter((f) => docs[0]![f] !== undefined);
-
-    // Always include id if present
-    if (docs[0]!['id'] !== undefined && !insertFields.includes('id')) {
-      insertFields.unshift('id');
+    if (!this.pool) throw new SynapseError('PLUGIN_CONNECTION_FAILED', 'Not connected');
+    if (docs.length === 0 || fields.length === 0) {
+      return { insertedCount: 0, insertedIds: [] };
     }
 
-    const values: unknown[] = [];
-    let paramIdx = 1;
+    // Parameterized batch insert
+    const values: any[] = [];
+    const placeholders: string[] = [];
 
-    const rowPlaceholders = docs.map((doc) => {
-      const placeholders = insertFields.map((f) => {
-        const value = doc[f];
-        values.push(typeof value === 'object' && value !== null && !Array.isArray(value)
-          ? JSON.stringify(value)
-          : value);
-        return `$${paramIdx++}`;
-      });
-      return `(${placeholders.join(', ')})`;
-    });
+    const fieldNames = fields.map((f) => `"${f}"`).join(', ');
+    let paramIndex = 1;
 
-    const columns = insertFields.map((f) => `"${f}"`).join(', ');
-    const sql = `INSERT INTO "${collection}" (${columns}) VALUES ${rowPlaceholders.join(', ')} RETURNING "id"`;
+    for (const doc of docs) {
+      const docPlaceholders: string[] = [];
+      for (const field of fields) {
+        values.push(doc[field] ?? null);
+        docPlaceholders.push(`$${paramIndex++}`);
+      }
+      placeholders.push(`(${docPlaceholders.join(', ')})`);
+    }
 
-    const result = await this.pool.query(sql, values);
-    const insertedIds = result.rows.map((row: Record<string, unknown>) => String(row['id']));
+    const sql = `INSERT INTO "${collection}" (${fieldNames}) VALUES ${placeholders.join(', ')} RETURNING id`;
 
-    return {
-      insertedCount: result.rowCount ?? docs.length,
-      insertedIds,
-    };
+    try {
+      const result = await this.pool.query(sql, values);
+      return {
+        insertedCount: result.rowCount ?? 0,
+        insertedIds: result.rows.map((r) => String(r.id)),
+      };
+    } catch (err: any) {
+      // Catch idempotency duplicates (Postgres unique violation is 23505)
+      if (err.code === '23505') {
+        const ids = docs.map((d) => String(d.id));
+        this.logger?.warn(`Idempotency hit: Documents ${ids.join(',')} already exist in PostgreSQL`);
+        return { insertedCount: 0, insertedIds: ids };
+      }
+      throw new SynapseError('PLUGIN_QUERY_FAILED', `Insert failed: ${err.message}`);
+    }
   }
 
-  async find(collection: string, query: QueryAST, fields: string[]): Promise<Document[]> {
-    if (!this.pool) throw new Error('Not connected');
+  async find(collection: string, ast: QueryAST, fields: string[]): Promise<Document[]> {
+    if (!this.pool) throw new SynapseError('PLUGIN_CONNECTION_FAILED', 'Not connected');
 
-    // Dynamic import of emitter to avoid circular deps
-    const { emitSQL } = await import('@synapsedb/core/compiler/sql-emitter');
-    const sql = emitSQL(query, fields);
+    const selectFields = fields.length > 0 ? fields.map((f) => `"${f}"`).join(', ') : '*';
+    const { where, values } = this.buildWhereClause(ast);
 
-    const result = await this.pool.query(sql.text, sql.values);
-    return result.rows as Document[];
+    let sql = `SELECT ${selectFields} FROM "${collection}"`;
+    if (where) sql += ` WHERE ${where}`;
+
+    // Order By
+    if (ast.sort) {
+      const sorts = ast.sort.map((s) => `"${s.field}" ${s.direction}`);
+      if (sorts.length > 0) sql += ` ORDER BY ${sorts.join(', ')}`;
+    }
+
+    // Limit and Offset
+    if (ast.limit) {
+      sql += ` LIMIT $${values.length + 1}`;
+      values.push(ast.limit);
+    }
+    if (ast.offset) {
+      sql += ` OFFSET $${values.length + 1}`;
+      values.push(ast.offset);
+    }
+
+    try {
+      const result = await this.pool.query(sql, values);
+      return result.rows;
+    } catch (err: any) {
+      throw new SynapseError('PLUGIN_QUERY_FAILED', `Find failed: ${err.message}`);
+    }
   }
 
-  async findOne(collection: string, query: QueryAST, fields: string[]): Promise<Document | null> {
-    const onceQuery = { ...query, type: 'FIND_ONE' as const };
-    const results = await this.find(collection, onceQuery, fields);
-    return results[0] ?? null;
+  async findOne(collection: string, ast: QueryAST, fields: string[]): Promise<Document | null> {
+    const originalLimit = ast.limit;
+    ast.limit = 1;
+    const docs = await this.find(collection, ast, fields);
+    ast.limit = originalLimit;
+    return docs.length > 0 ? (docs[0] ?? null) : null;
   }
 
-  async update(
-    collection: string,
-    query: QueryAST,
-    changes: Record<string, unknown>,
-    fields: string[],
-  ): Promise<UpdateResult> {
-    if (!this.pool) throw new Error('Not connected');
+  async update(collection: string, ast: QueryAST, changes: Record<string, unknown>, fields: string[]): Promise<UpdateResult> {
+    if (!this.pool) throw new SynapseError('PLUGIN_CONNECTION_FAILED', 'Not connected');
 
-    const { emitSQL } = await import('@synapsedb/core/compiler/sql-emitter');
-    const updateAST: QueryAST = { ...query, type: 'UPDATE', updates: changes };
-    const sql = emitSQL(updateAST, fields);
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-    const result = await this.pool.query(sql.text, sql.values);
+    for (const field of fields) {
+      if (field in changes) {
+        setClauses.push(`"${field}" = $${paramIndex++}`);
+        values.push(changes[field]);
+      }
+    }
 
-    return {
-      matchedCount: result.rowCount ?? 0,
-      modifiedCount: result.rowCount ?? 0,
-    };
+    if (setClauses.length === 0) return { matchedCount: 0, modifiedCount: 0 };
+
+    const { where, values: whereValues } = this.buildWhereClause(ast, paramIndex);
+    values.push(...whereValues);
+
+    let sql = `UPDATE "${collection}" SET ${setClauses.join(', ')}`;
+    if (where) sql += ` WHERE ${where}`;
+
+    try {
+      const result = await this.pool.query(sql, values);
+      return {
+        matchedCount: result.rowCount ?? 0,
+        modifiedCount: result.rowCount ?? 0,
+      };
+    } catch (err: any) {
+      throw new SynapseError('PLUGIN_QUERY_FAILED', `Update failed: ${err.message}`);
+    }
   }
 
-  async delete(collection: string, query: QueryAST): Promise<DeleteResult> {
-    if (!this.pool) throw new Error('Not connected');
+  async delete(collection: string, ast: QueryAST): Promise<DeleteResult> {
+    if (!this.pool) throw new SynapseError('PLUGIN_CONNECTION_FAILED', 'Not connected');
 
-    const { emitSQL } = await import('@synapsedb/core/compiler/sql-emitter');
-    const deleteAST: QueryAST = { ...query, type: 'DELETE' };
-    const sql = emitSQL(deleteAST, []);
+    const { where, values } = this.buildWhereClause(ast);
+    let sql = `DELETE FROM "${collection}"`;
+    if (where) sql += ` WHERE ${where}`;
 
-    const result = await this.pool.query(sql.text, sql.values);
-
-    return {
-      deletedCount: result.rowCount ?? 0,
-    };
+    try {
+      const result = await this.pool.query(sql, values);
+      return {
+        deletedCount: result.rowCount ?? 0,
+      };
+    } catch (err: any) {
+      throw new SynapseError('PLUGIN_QUERY_FAILED', `Delete failed: ${err.message}`);
+    }
   }
 
   capabilities(): PluginCapabilities {
     return {
       supportsTransactions: true,
-      supportsFullTextSearch: false,
-      supportsVectorSearch: false,
-      supportsNestedDocuments: false,
-      supportsTTL: false,
       supportsIndexes: true,
       supportsUniqueConstraints: true,
+      supportsNestedDocuments: true, // we use JSONB
+      supportsFullTextSearch: false,
+      supportsVectorSearch: false,
+      supportsTTL: false,
     };
   }
+
+  // Helper to map QueryAST Filters to SQL WHERE clauses
+  private buildWhereClause(ast: QueryAST, startIndex: number = 1): { where: string; values: any[] } {
+    const values: any[] = [];
+    let where = '';
+
+    if (!ast.filters?.conditions?.length) return { where, values };
+
+    const clauses: string[] = [];
+    let idx = startIndex;
+
+    for (const comp of ast.filters.conditions) {
+      // Type asserting as the AST runtime guarantees field/value properties based on schema logic
+      const field = (comp as any).field;
+      const val = (comp as any).value;
+      const op = (comp as any).operator ?? 'eq';
+
+      if (!field) continue;
+
+      let sqlOp = '=';
+      switch (op) {
+        case 'EQ':
+          sqlOp = '=';
+          break;
+        case 'GT':
+          sqlOp = '>';
+          break;
+        case 'LT':
+          sqlOp = '<';
+          break;
+        case 'GTE':
+          sqlOp = '>=';
+          break;
+        case 'LTE':
+          sqlOp = '<=';
+          break;
+        case 'IN':
+          sqlOp = 'IN';
+          break;
+      }
+
+      if (op === 'IN' && Array.isArray(val)) {
+        const inVars = val.map(() => `$${idx++}`).join(', ');
+        clauses.push(`"${field}" IN (${inVars})`);
+        values.push(...val);
+      } else {
+        clauses.push(`"${field}" ${sqlOp} $${idx++}`);
+        values.push(val);
+      }
+    }
+
+    if (clauses.length > 0) {
+      where = clauses.join(ast.filters.logic === 'OR' ? ' OR ' : ' AND ');
+    }
+
+    return { where, values };
+  }
 }
 
-// ─── SQL Type Mapping ────────────────────────────────────────
-
+// Map logical intent to Postgres Data Types
 function mapFieldToSQL(fieldName: string, desc: FieldDescriptor): string {
-  let sql = '';
-
+  if (fieldName === 'id') return 'UUID';
   switch (desc.type) {
-    case 'uuid':
-      sql = 'UUID';
-      if (desc.primary) sql += ' PRIMARY KEY DEFAULT gen_random_uuid()';
-      break;
     case 'string':
-      sql = 'VARCHAR(255)';
-      break;
-    case 'text':
-      sql = 'TEXT';
-      break;
-    case 'number':
-    case 'float':
-      sql = 'DOUBLE PRECISION';
-      break;
+      return 'TEXT';
+    case 'uuid':
+      return 'UUID';
     case 'integer':
-      sql = 'INTEGER';
-      break;
+      return 'INTEGER';
+    case 'float':
+      return 'DOUBLE PRECISION';
     case 'boolean':
-      sql = 'BOOLEAN';
-      break;
-    case 'timestamp':
-      sql = 'TIMESTAMPTZ';
-      if (desc.auto) sql += ' DEFAULT NOW()';
-      break;
+      return 'BOOLEAN';
     case 'date':
-      sql = 'DATE';
-      break;
+      return 'TIMESTAMP WITH TIME ZONE';
     case 'json':
-      sql = 'JSONB';
-      break;
     case 'array':
-      sql = 'JSONB'; // Store arrays as JSONB
-      break;
-    case 'binary':
-      sql = 'BYTEA';
-      break;
+      return 'JSONB';
     default:
-      sql = 'TEXT';
+      return 'TEXT';
   }
-
-  if (desc.required && !desc.primary) {
-    sql += ' NOT NULL';
-  }
-
-  if (desc.unique && !desc.primary) {
-    sql += ' UNIQUE';
-  }
-
-  if (desc.default !== undefined && !desc.auto) {
-    sql += ` DEFAULT ${formatDefault(desc.default)}`;
-  }
-
-  return sql;
 }
 
-function formatDefault(value: unknown): string {
-  if (typeof value === 'string') return `'${value}'`;
-  if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
-  if (value === null) return 'NULL';
-  return String(value);
-}
-
-export default function createPostgresPlugin(): PostgresPlugin {
-  return new PostgresPlugin();
+// ─── PLUGIN FACTORY ───
+// Default export pattern requested by Prompt Step 1
+export default function createPostgresPlugin(config: PluginConfig): IStoragePlugin {
+  return new PostgresPlugin(config);
 }
