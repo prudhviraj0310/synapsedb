@@ -1,0 +1,22 @@
+# CodeRabbit Configuration
+# Documentation: https://docs.coderabbit.ai/
+version: "1.0"
+language: "en-US"
+reviews:
+  profile: "chill" # Options: "chill", "standard", "thorough"
+  request_review_command: "/review"
+  auto_review:
+    enabled: true
+    pull_request:
+      enabled: true
+      draft: false
+    files:
+      ignore:
+        - "**/node_modules/**"
+        - "**/dist/**"
+        - "**/*.lock"
+        - "**/package-lock.json"
+        - "**/yarn.lock"
+        - "**/pnpm-lock.yaml"
+chat:
+  enabled: true

@@ -1,0 +1,36 @@
+{
+  "name": "synapsedb",
+  "version": "0.2.0",
+  "private": true,
+  "description": "7-Layer Data Orchestration Engine",
+  "author": "OmniDB Contributors",
+  "license": "MIT",
+  "workspaces": [
+    "packages/sdk",
+    "packages/core",
+    "packages/plugins/plugin-postgres",
+    "packages/plugins/plugin-mongodb",
+    "packages/plugins/plugin-redis",
+    "packages/plugins/plugin-vector",
+    "apps/demo"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev -w packages/core",
+    "test": "npm run test --workspaces --if-present",
+    "test:integration": "npm run test:integration -w packages/core",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "clean": "rm -rf packages/*/dist apps/*/dist node_modules/.cache"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

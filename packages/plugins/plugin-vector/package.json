@@ -1,0 +1,21 @@
+{
+  "name": "@synapsedb/plugin-vector",
+  "version": "0.2.0",
+  "description": "SynapseDB In-Memory Vector Driver Adapter (Layer 6)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@synapsedb/core": "*"
+  }
+}

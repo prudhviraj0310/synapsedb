@@ -1,0 +1,30 @@
+{
+  "name": "@synapsedb/core",
+  "version": "0.2.0",
+  "description": "SynapseDB Core Engine — The Brain (Layer 4)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./plugin/contract": "./src/plugin/contract.ts",
+    "./compiler/sql-emitter": "./src/compiler/sql-emitter.ts",
+    "./compiler/mongo-emitter": "./src/compiler/mongo-emitter.ts",
+    "./compiler/redis-emitter": "./src/compiler/redis-emitter.ts",
+    "./compiler/vector-emitter": "./src/compiler/vector-emitter.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "fastify": "^5.2.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "vitest": "^3.0.0"
+  }
+}

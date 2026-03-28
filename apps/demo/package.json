@@ -1,0 +1,23 @@
+{
+  "name": "@synapsedb/demo",
+  "version": "0.2.0",
+  "description": "SynapseDB Demo — E-commerce with 7-layer multi-store routing",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "standalone": "tsx src/standalone.ts",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@synapsedb/sdk": "*",
+    "@synapsedb/core": "*",
+    "@synapsedb/plugin-postgres": "*",
+    "@synapsedb/plugin-mongodb": "*",
+    "@synapsedb/plugin-redis": "*",
+    "@synapsedb/plugin-vector": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

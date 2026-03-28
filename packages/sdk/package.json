@@ -1,0 +1,19 @@
+{
+  "name": "@synapsedb/sdk",
+  "version": "0.2.0",
+  "description": "SynapseDB Client SDK — The Unified API (Layer 2)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}
