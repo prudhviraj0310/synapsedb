@@ -16,7 +16,10 @@
     "packages/plugins/plugin-mongodb",
     "packages/plugins/plugin-redis",
     "packages/plugins/plugin-vector",
-    "apps/demo"
+    "packages/plugins/plugin-duckdb",
+    "packages/plugins/plugin-sqlite",
+    "apps/demo",
+    "apps/studio"
   ],
   "scripts": {
     "start": "npx tsx apps/demo/src/launch.ts",

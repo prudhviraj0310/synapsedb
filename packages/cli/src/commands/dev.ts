@@ -2,11 +2,55 @@ import chalk from 'chalk';
 import blessed from 'blessed';
 // @ts-ignore
 import contrib from 'blessed-contrib';
+import WebSocket from 'ws';
 
 // -----------------------------------------------------
 // 🎬 1. CINEMATIC BOOT SEQUENCE
 // -----------------------------------------------------
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Attempt to connect to the real SynapseDB Engine telemetry stream.
+ * Returns null if the engine is not running (graceful fallback).
+ */
+function connectTelemetry(stateEngine: TerminalStateEngine): WebSocket | null {
+  try {
+    const ws = new WebSocket('ws://localhost:9876/ws/telemetry');
+    
+    ws.on('open', () => {
+      stateEngine.pushLog('{green-bg}{black-fg} LIVE: Connected to SynapseDB Engine Telemetry {/}');
+      (stateEngine as any)._isLive = true;
+    });
+
+    ws.on('message', (raw: Buffer) => {
+      try {
+        const frame = JSON.parse(raw.toString());
+        if (frame.type === 'metrics' && frame.data) {
+          const m = frame.data;
+          stateEngine.updateMetrics(
+            Math.floor(m.operationsPerSecond || 0),
+            parseFloat(((1 - (m.totalErrors / Math.max(m.totalOperations, 1))) * 100).toFixed(1)),
+            parseFloat((process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1))
+          );
+        }
+      } catch {}
+    });
+
+    ws.on('error', () => {
+      // Engine not running — silently fall back
+      (stateEngine as any)._isLive = false;
+    });
+
+    ws.on('close', () => {
+      (stateEngine as any)._isLive = false;
+      stateEngine.pushLog('{yellow-fg}⚠ Engine telemetry disconnected. Falling back to simulation.{/}');
+    });
+
+    return ws;
+  } catch {
+    return null;
+  }
+}
 
 async function bootSequence() {
   console.clear();
@@ -169,6 +213,9 @@ export async function handleDev() {
   const stateEngine = new TerminalStateEngine();
   const storyEngine = new NarrativeStoryEngine(stateEngine);
 
+  // Attempt to connect to real engine telemetry
+  const telemetryWs = connectTelemetry(stateEngine);
+
   const screen = blessed.screen({
     smartCSR: true,
     fullUnicode: true,
@@ -219,7 +266,10 @@ export async function handleDev() {
   screen.key(['b'], () => stateEngine.setMode('BALANCED ⚖️'));
 
   const dataInterval = setInterval(() => {
-    storyEngine.simulateTick();
+    // Only simulate if real engine telemetry is not connected
+    if (!(stateEngine as any)._isLive) {
+      storyEngine.simulateTick();
+    }
   }, 1000);
 
   storyEngine.simulateTick(); 
@@ -298,6 +348,7 @@ export async function handleDev() {
   function teardown() {
     clearInterval(dataInterval);
     clearInterval(renderInterval);
+    if (telemetryWs) telemetryWs.close();
     screen.destroy();
     console.log(chalk.green('\n✔ SynapseOS: Session cleanly unmounted. Terminating.'));
     process.exit(0);

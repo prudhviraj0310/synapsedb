@@ -25,6 +25,9 @@ export * from './storage/index.js';
 // v0.5 — Data OS
 export * from './edge/index.js';
 
+// Telemetry
+export * from './telemetry/index.js';
+
 // Types
 export type {
   SynapseConfig,

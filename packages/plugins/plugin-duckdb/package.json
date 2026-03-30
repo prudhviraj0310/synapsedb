@@ -1,0 +1,20 @@
+{
+  "name": "@synapsedb/plugin-duckdb",
+  "version": "0.2.0",
+  "description": "SynapseDB DuckDB Columnar Analytics Adapter (Layer 6)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "duckdb": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@synapsedb/core": "*"
+  }
+}

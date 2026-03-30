@@ -7,6 +7,7 @@ import Fastify from 'fastify';
 import type { SynapseConfig, CollectionManifest } from './types.js';
 import { SynapseEngine } from './engine.js';
 import { createLogger } from './logger.js';
+import { TelemetryBridge } from './telemetry/index.js';
 
 const logger = createLogger('Server');
 
@@ -243,14 +244,14 @@ export async function createServer(config: SynapseConfig) {
     };
   });
 
-  return { app, engine };
+  return { app, engine, telemetry: new TelemetryBridge(engine) };
 }
 
 /**
  * Start the SynapseDB server.
  */
 export async function startServer(config: SynapseConfig): Promise<void> {
-  const { app, engine } = await createServer(config);
+  const { app, engine, telemetry } = await createServer(config);
 
   // Initialize engine
   await engine.initialize();
@@ -259,6 +260,9 @@ export async function startServer(config: SynapseConfig): Promise<void> {
   const port = config.port ?? 9876;
 
   await app.listen({ host, port });
+
+  // Attach telemetry WebSocket bridge to the raw HTTP server
+  telemetry.attach(app.server);
 
   logger.info(`
   ╔══════════════════════════════════════════╗
@@ -274,6 +278,7 @@ export async function startServer(config: SynapseConfig): Promise<void> {
   // Graceful shutdown
   const shutdown = async () => {
     logger.info('Shutting down...');
+    telemetry.shutdown();
     await app.close();
     await engine.shutdown();
     process.exit(0);

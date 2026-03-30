@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SynapseDB Studio</title>
+    <style>
+      :root {
+        --bg-color: #050505;
+        --card-bg: #111;
+        --text-primary: #fff;
+        --text-secondary: #888;
+        --accent: #00FFB3;
+        --border: #222;
+      }
+      body {
+        font-family: 'Inter', -apple-system, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -1px;
+      }
+      .subtitle {
+        color: var(--accent);
+        font-size: 1.2rem;
+        margin-top: 0.5rem;
+      }
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        width: 100%;
+        max-width: 1000px;
+      }
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+      .card-title {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+      }
+      .card-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #555;
+        margin-right: 8px;
+        transition: background-color 0.3s ease;
+      }
+      .status-indicator.connected {
+        background-color: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+      }
+      .status-indicator.disconnected {
+        background-color: #FF3B30;
+        box-shadow: 0 0 10px #FF3B30;
+      }
+      .status-text {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+      .connection-status {
+        display: flex;
+        align-items: center;
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1 class="title">SynapseDB Studio</h1>
+      <p class="subtitle">Real-time Telemetry Dashboard</p>
+    </div>
+
+    <div class="dashboard">
+      <div class="card">
+        <div class="card-title">Operations / Sec</div>
+        <div class="card-value" id="val-ops">0</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Total Operations</div>
+        <div class="card-value" id="val-total-ops">0</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Error Rate</div>
+        <div class="card-value" id="val-error-rate">0.0%</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Memory Usage</div>
+        <div class="card-value" id="val-memory">0 MB</div>
+      </div>
+    </div>
+
+    <div class="connection-status">
+      <span class="status-indicator disconnected" id="status-dot"></span>
+      <span class="status-text" id="status-msg">Disconnected</span>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

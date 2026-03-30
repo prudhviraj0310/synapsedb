@@ -1,0 +1,24 @@
+{
+  "name": "@synapsedb/plugin-sqlite",
+  "version": "0.2.0",
+  "description": "SynapseDB SQLite Zero-Dependency Local Adapter (Layer 6)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0"
+  },
+  "peerDependencies": {
+    "@synapsedb/core": "*"
+  }
+}
