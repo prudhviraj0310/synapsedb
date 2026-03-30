@@ -10,16 +10,21 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test": "vitest run"
   },
   "dependencies": {
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0",
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
     "fs-extra": "^11.2.0",
     "inquirer": "^9.2.16",
+    "log-update": "^7.2.0",
     "pg": "^8.20.0"
   },
   "devDependencies": {
+    "@types/blessed": "^0.1.27",
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.9",
     "@types/node": "^20.11.28",

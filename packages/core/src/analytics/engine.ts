@@ -54,6 +54,8 @@ export class AnalyticsEngine {
   private rowCounts: Map<string, number> = new Map();
   /** Primary key for fast lookups */
   private pkIndex: Map<string, Map<string, number>> = new Map(); // collection → pk_value → row_index
+  /** Track indices of soft-deleted rows */
+  private deletedRows: Map<string, Set<number>> = new Map();
 
   constructor(logger: Logger) {
     this.logger = logger;
@@ -64,6 +66,10 @@ export class AnalyticsEngine {
   /**
    * Ingest a document into the columnar store.
    * Called by the CDC engine on every write operation.
+   *
+   * Ingest supports both INSERT and UPDATE.
+   * For updates, only pass the changed fields — existing fields are preserved.
+   * For full document replacement, pass all fields.
    */
   ingest(collection: string, document: Document, pk = 'id'): void {
     let colStore = this.columns.get(collection);
@@ -98,9 +104,9 @@ export class AnalyticsEngine {
     }
 
     if (existingRow === undefined) {
-      // New row — fill any columns that weren't in this doc with null
+      // New row — ensure all columns are the same length
       for (const [, column] of colStore) {
-        if (column.length <= rowCount) {
+        while (column.length <= rowCount) {
           column.push(null);
         }
       }
@@ -118,6 +124,11 @@ export class AnalyticsEngine {
 
     const rowIdx = index.get(documentId);
     if (rowIdx === undefined) return;
+
+    if (!this.deletedRows.has(collection)) {
+      this.deletedRows.set(collection, new Set());
+    }
+    this.deletedRows.get(collection)!.add(rowIdx);
 
     const colStore = this.columns.get(collection);
     if (colStore) {
@@ -166,7 +177,7 @@ export class AnalyticsEngine {
     }
 
     // Determine which rows pass the filter
-    const validRows = this.getFilteredRows(colStore, rowCount, filter);
+    const validRows = this.getFilteredRows(collection, colStore, rowCount, filter);
 
     // Check for GROUP BY
     const groupOp = ops.find((o) => o.type === 'GROUP');
@@ -240,7 +251,7 @@ export class AnalyticsEngine {
     }
 
     const selectedFields = fields ?? [...colStore.keys()];
-    const validRows = this.getFilteredRows(colStore, rowCount, filter);
+    const validRows = this.getFilteredRows(collection, colStore, rowCount, filter);
     const limitRows = limit ? validRows.slice(0, limit) : validRows;
 
     const rows: unknown[][] = [];
@@ -272,15 +283,13 @@ export class AnalyticsEngine {
 
     for (const [collection, colStore] of this.columns) {
       const rowCount = this.rowCounts.get(collection) ?? 0;
-      let sizeEstimate = 0;
-
-      for (const [, column] of colStore) {
-        // Rough estimate: 8 bytes per numeric, 50 bytes per string/complex
-        sizeEstimate += column.length * 16;
-      }
+      const deleted = this.deletedRows.get(collection)?.size ?? 0;
+      const liveRows = rowCount - deleted;
+      
+      const sizeEstimate = liveRows * colStore.size * 16;
 
       result[collection] = {
-        rows: rowCount,
+        rows: liveRows,
         columns: colStore.size,
         sizeEstimate,
       };
@@ -304,21 +313,23 @@ export class AnalyticsEngine {
     this.columns.clear();
     this.rowCounts.clear();
     this.pkIndex.clear();
+    this.deletedRows.clear();
   }
 
   // ─── Private Helpers ────────────────────────────────────
 
   private getFilteredRows(
+    collection: string,
     colStore: Map<string, unknown[]>,
     rowCount: number,
     filter?: Record<string, unknown>,
   ): number[] {
     const validRows: number[] = [];
+    const deleted = this.deletedRows.get(collection);
 
     for (let i = 0; i < rowCount; i++) {
-      // Check if row was deleted (all columns null at this index)
-      const idCol = colStore.get('id');
-      if (idCol && idCol[i] === null) continue;
+      // Check if row was deleted
+      if (deleted?.has(i)) continue;
 
       // Apply filter
       if (filter) {

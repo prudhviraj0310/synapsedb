@@ -1,522 +1,440 @@
-<div align="center">
-
-<br/>
-
-```
-███████╗██╗   ██╗███╗   ██╗ █████╗ ██████╗ ███████╗███████╗██████╗ ██████╗
-██╔════╝╚██╗ ██╔╝████╗  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗██╔══██╗
-███████╗ ╚████╔╝ ██╔██╗ ██║███████║██████╔╝███████╗█████╗  ██║  ██║██████╔╝
-╚════██║  ╚██╔╝  ██║╚██╗██║██╔══██║██╔═══╝ ╚════██║██╔══╝  ██║  ██║██╔══██╗
-███████║   ██║   ██║ ╚████║██║  ██║██║     ███████║███████╗██████╔╝██████╔╝
-╚══════╝   ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝╚═════╝ ╚═════╝
-```
-
-### **The Operating System for Data Infrastructure**
-
-*Stop writing database glue code. Define what your data should **do**.*
-*SynapseDB handles the where, how, and when — automatically.*
-
-<br/>
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](./LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-18%2F18%20passing-22c55e?style=flat-square)](./apps/demo/src/comprehensive-test.ts)
-[![Ops/sec](https://img.shields.io/badge/Throughput-70%2C000%2B%20ops%2Fsec-06b6d4?style=flat-square)]()
-[![Status](https://img.shields.io/badge/Status-OPERATIONAL-22c55e?style=flat-square)]()
-
-<br/>
-
-```
-  ONE API.  FOUR DATABASES.  ZERO GLUE CODE.
-```
-
-</div>
-
-<br/>
+<p align="center">
+  <br />
+  <img src="https://img.shields.io/badge/SYNAPSE-DB-000000?style=for-the-badge&labelColor=0A0A0A&color=00FFB3&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0yMiAxMmgtNGwtMyA5TDkgM2wtMyA5SDIiLz48L3N2Zz4=" alt="SynapseDB" />
+  <br /><br />
+  <strong>The Autonomous Data Operating System</strong>
+  <br />
+  <em>One engine. Every database. Zero decisions.</em>
+  <br /><br />
+  <a href="https://www.npmjs.com/package/@synapsedb/cli"><img src="https://img.shields.io/npm/v/@synapsedb/cli.svg?style=flat-square&color=00FFB3" alt="npm version" /></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square" alt="node version" />
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license" />
+  <img src="https://img.shields.io/badge/TypeScript-strict-blue?style=flat-square&logo=typescript&logoColor=white" alt="typescript" />
+  <img src="https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square" alt="tests" />
+  <img src="https://img.shields.io/badge/PRs-welcome-orange?style=flat-square" alt="prs" />
+  <br /><br />
+</p>
 
 ---
 
-**Stop writing Redis caching manually. SynapseDB does it for you.**
+<br />
 
-<br/>
+> **SynapseDB doesn't replace your database. It replaces the decisions you make about it.**
+>
+> You declare what your data *means*. Synapse decides where it *lives*, how it *moves*, and when it *heals*.
 
-## 🚀 Meet Prudhvi (Every Backend Dev Ever)
+<br />
 
-Prudhvi is building a fast Express backend. He knows what’s coming:
-- Postgres for data
-- Redis for caching
-- Messy sync logic
-- Race conditions
-- Debugging at 2AM
-
-<br/>
-
-### ❌ The Normal Way (Pain)
-
-```typescript
-const cached = await redis.get(`user:${id}`);
-if (cached) return JSON.parse(cached);
-
-const user = await db.query('SELECT * FROM users WHERE id=$1', [id]);
-
-await redis.set(`user:${id}`, JSON.stringify(user));
-
-return user;
-```
-
-👉 Multiply this across your app = pain.
-
-<br/>
-
-### ⚡ With SynapseDB (Prudhvi’s Experience)
-
-**1. Setup — 30 seconds**
+## ⚡ Try It in 10 Seconds
 
 ```bash
-npx synapsedb init
+npx synapsedb dev
 ```
 
-Select:
-- Postgres ✅
-- Redis ✅
+That's it. No config files. No Docker. No env vars.
 
-Done. No config headaches. No boilerplate.
+Your terminal transforms into a living, breathing control room — real-time telemetry, autonomous routing decisions, and interactive mode-switching — all rendered at 60FPS natively in your console.
 
-**2. Write API — 2 minutes**
-
-```typescript
-import db from './db.js';
-
-// Create user
-await db.insert('users', [req.body]);
-
-// Get user
-const user = await db.findOne('users', { id: req.params.id });
-```
-
-👉 **That’s it.** No SQL. No Redis. No caching logic.
-
-<br/>
-
-### 🔥 What Actually Happens (The Magic)
-
-**⚡ Automatic Caching**
-- First request → Postgres
-- Next requests → Redis (sub-ms)
-- Cache updated automatically
-
-👉 **You wrote zero caching code**
-
-**🛡️ Built-in Resilience**
-- DB goes down?
-- Synapse returns safe errors
-- Auto-recovers gracefully
-
-👉 **No crashes. No chaos.**
-
-**🔄 Future-Proof**
-- Want Mongo later?
-- `type: 'postgres'` → `'mongodb'`
-
-👉 **Your API code stays untouched.**
-
-<br/>
-
-### 🧠 What Prudhvi Realizes
-
-> *"Wait… I didn’t write caching… but it’s working?"*
-
-That’s when it clicks.
-
-**SYNAPSEDB IS NOT JUST A DB TOOL. It’s a system that handles data complexity for you.**
-
-Prudhvi came for an "easy database setup". He got:
-- ⚡ **automatic Redis caching**
-- 🛡️ **fault tolerance**
-- 🔄 **multi-database flexibility**
-- 📊 **real-time analytics**
-
-<br/>
+<br />
 
 ---
 
-<br/>
+<br />
 
-## 🛠️ Startup Guide (Getting Started)
+## 🧠 What is SynapseDB?
 
-Do you want to see exactly what Prudhvi built? You can start integrating SynapseDB into your own Node backend right now.
+SynapseDB is a **7-Layer Data Orchestration Engine** that sits between your application and your databases.
 
-### 1. Initialize Your Project
-In any new or existing Node project (e.g., an Express API or NextJS app), run:
-```bash
-npm install express
-npx @synapsedb/cli init
-```
-*The CLI will ask you which databases you want to use. Follow the prompts to automatically generate your `src/db.ts` file.*
+You write one query. Synapse compiles it into an Abstract Syntax Tree, analyzes the field-level intent annotations, and autonomously routes each field to the optimal storage backend — **PostgreSQL** for ACID transactions, **Redis** for sub-millisecond edge caching, **MongoDB** for flexible documents, and **Vector stores** for AI embeddings.
 
-### 2. Write Your Data Routes
-In your `server.ts` or route handlers, import your new Synapse Engine:
+This is not an ORM. This is not a query builder. This is a **Data Operating System**.
+
 ```typescript
-import db from './db.js';
+import { SynapseEngine } from '@synapsedb/core';
 
-app.post('/api/media', async (req, res) => {
-  // This automatically stores in Postgres AND primes the Redis cache!
-  await db.insert('media', [req.body]);
-  res.json({ success: true });
+const db = new SynapseEngine({
+  plugins: {
+    postgres: { type: 'sql',    package: '@synapsedb/plugin-postgres', config: { connectionUri: process.env.PG_URI } },
+    redis:    { type: 'cache',  package: '@synapsedb/plugin-redis',    config: { connectionUri: process.env.REDIS_URI } },
+    mongo:    { type: 'nosql',  package: '@synapsedb/plugin-mongodb',  config: { connectionUri: process.env.MONGO_URI } },
+    vectors:  { type: 'vector', package: '@synapsedb/plugin-vector',   config: { connectionUri: process.env.VECTOR_URI } },
+  },
 });
 
-app.get('/api/media', async (req, res) => {
-  // This will read from Redis in <10ms if cached, bypassing Postgres entirely.
-  const items = await db.find('media'); 
-  res.json(items.data);
+await db.initialize();
+
+// Define intent — not tables
+db.defineCollection({
+  name: 'users',
+  fields: {
+    id:        { type: 'uuid', primary: true, auto: true },
+    email:     { type: 'string', unique: true, transactional: true },    // → PostgreSQL (B-Tree)
+    profile:   { type: 'json', flexible: true, nested: true },           // → MongoDB (Document)
+    session:   { type: 'string', cached: true, ttl: 3600 },             // → Redis (Edge Cache)
+    embedding: { type: 'vector', dimensions: 1536 },                     // → Vector DB (ANN)
+  },
 });
+
+// One query — four databases — zero decisions
+const user = await db.findOne('users', { email: 'alex@synapse.io' });
 ```
 
-### 3. Launch the Studio Dashboard
-Want to visualize what the engine is actually doing to your queries? Run the built-in telemetry dashboard:
-```bash
-npx synapsedb studio
-```
+Synapse's **Kinetic Router** analyzed the field annotations at startup. It knows `email` is transactional (SQL), `profile` is flexible (NoSQL), `session` is cached (Redis), and `embedding` is a vector (ANN index). When you query, the engine compiles a parallel execution plan, fetches from all four backends simultaneously, joins the results by primary key, and returns a single unified document.
 
-<br/>
+You wrote one line. Four databases responded. You didn't choose any of them.
+
+<br />
 
 ---
 
-<br/>
+<br />
 
-## 🎯 Real-World Demo Proof
+## 🏗️ The 7-Layer Architecture
 
-We built a **Media Asset Manager** to prove this isn't just theory. The UI below fetches media assets from a SynapseDB-powered Express API.
-
-**Notice the "Last Query: 8.4ms".** The developer *did not write any caching code*, yet SynapseDB automatically intercepted the query, recognized it as heavily read, and ejected the payload from Redis instead of hitting Postgres.
-
-![Synapse Media Hub Demo Dashboard](./docs/assets/demo.png)
-
-### Autonomous User Testing
-Below is an autonomous browser recording of a test user creating an S3 Asset entry. As soon as the user hits `Deploy Asset`, the backend `db.insert()` automatically updates the Redis cache state without the user waiting for a complex background job.
-
-![Synapse Hub User flow](./docs/assets/demo.webp)
-
-<br/>
-
----
-
-<br/>
-
-## The Three Pillars
-
-<br/>
-
-### 🧠 Pillar I — Autonomous Data Engine
-
-> *The engine watches itself. You don't have to.*
-
-SynapseDB's **Workload Analyzer** monitors every query in real time. When traffic patterns shift, it adapts — without a config change, without a deploy, without a human.
-
-```
-Normal traffic        →  Standard routing
-Read spike detected   →  PROMOTE_TO_CACHE   (hot data ejected to Redis)
-Write storm detected  →  ENABLE_WRITE_BUFFER (RAM-backed batch absorb)
-Field goes cold       →  AUTO_ARCHIVE        (moved to cold storage tier)
-```
-
-Real output from a live stress test:
-
-```
-WARN  [SynapseDB] 🚀 Auto-Tuner: Promoting media to Redis Cache due to read spike on id
-WARN  [SynapseDB] 🛡️  Auto-Tuner: Write Storm Detected on media.views. Enabling Write-Behind Buffer.
-
-  PROMOTE_TO_CACHE   → media.id    (confidence: 100%)
-  ENABLE_WRITE_BUFFER → media.views (confidence: 60%)
-```
-
-<br/>
-
-### ⚡ Pillar II — Zero-ETL Real-Time Analytics
-
-> *Your writes are already in the analytics engine. There is no pipeline.*
-
-Every `INSERT`, `UPDATE`, and `DELETE` is intercepted by the internal `CDCAnalyticsBridge` and synchronously replicated into a columnar engine — before your `await` resolves.
-
-```typescript
-// Insert 500 documents
-await Promise.all(docs.map(d => db.insert('users', d)));
-
-// Query aggregations INSTANTLY — no warehouse, no delay
-const stats = db.aggregate('users', [
-  { type: 'GROUP', field: 'role'       },
-  { type: 'SUM',   field: 'reputation' },
-]);
-
-// ✓ Zero-ETL aggregation completed in 0.59ms
-// ✓ 6.6GB of real files — query time: 0ms
-```
-
-No Kafka. No Airflow. No ClickHouse to configure. The aggregation is already there.
-
-<br/>
-
-### 🌍 Pillar III — Edge-Native Data Fabric
-
-> *Your database is now in every city your users are in.*
-
-SynapseDB ships a Web-standard `Request/Response` edge layer, compatible with Cloudflare Workers and Vercel Edge — out of the box.
-
-```
-Request from Tokyo  →  EdgeKV lookup:  0.00ms  ✓ (cache hit)
-Request from London →  EdgeKV lookup:  0.00ms  ✓ (cache hit)
-Request from Brazil →  EdgeKV lookup:  0.00ms  ✓ (cache hit)
-
-Offline write (Tokyo)  →  CRDT queue: 1 pending
-                       →  Flush to origin Postgres when reconnected ✓
-```
-
-Real latencies. Real regions. CRDT-safe offline writes that sync back without conflicts.
-
-<br/>
-
----
-
-<br/>
-
-## Architecture
+SynapseDB is not a monolith. It is a vertically integrated stack of specialized layers, each independently testable and replaceable.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Your Application                         │
-│              db.find() · db.insert() · db.sync()            │
-└───────────────────────────┬─────────────────────────────────┘
-                            │  @synapsedb/sdk
-┌───────────────────────────▼─────────────────────────────────┐
-│                    Unified API Layer                        │
-│           REST  ·  GraphQL  ·  WebSocket  ·  SDK            │
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────────┐
-│                   Query Engine                              │
-│        Parser  →  Planner  →  Translator  →  Executor       │
-└──────────┬──────────────────────────────────┬───────────────┘
-           │                                  │
-┌──────────▼──────────┐            ┌──────────▼──────────────┐
-│   Kinetic Router    │            │    Virtual Join Engine   │
-│  Field → DB mapping │            │   merger.ts  ·  stitch   │
-└──────────┬──────────┘            └──────────┬──────────────┘
-           │                                  │
-┌──────────▼──────────────────────────────────▼──────────────┐
-│                  SynapseDB Core Engine                      │
-│                                                             │
-│   ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐ │
-│   │ DB Detector │  │Feature Bridge│  │   CDC Sync Engine │ │
-│   │ Auto-detect │  │Capability map│  │Change propagation │ │
-│   └─────────────┘  └──────────────┘  └───────────────────┘ │
+│  L1  CLIENT APPS           Next.js · Express · Fastify      │
+├─────────────────────────────────────────────────────────────┤
+│  L2  UNIFIED API           db.find() · db.insert() · db.sync()
+├─────────────────────────────────────────────────────────────┤
+│  L3  QUERY ENGINE          AST Compiler → Execution Planner │
+├─────────────────────────────────────────────────────────────┤
+│  L4  CORE ENGINE           Kinetic Router · DB Detector     │
+│                            Feature Bridge · CDC Sync        │
+├─────────────────────────────────────────────────────────────┤
+│  L5  MIDDLEWARE             Query Cache · Schema Migrator   │
+│                            Observability · Write Buffer     │
+├─────────────────────────────────────────────────────────────┤
+│  L6  DRIVER ADAPTERS        Plugin Registry · Health Monitor│
+├─────────────────────────────────────────────────────────────┤
+│  L7  CONNECTED DBs          PostgreSQL · MongoDB · Redis    │
+│                             DuckDB · Pinecone · Qdrant     │
 └─────────────────────────────────────────────────────────────┘
-           │                                  │
-┌──────────▼──────────────────────────────────▼──────────────┐
-│               Resilience Layer                              │
-│  CircuitBreaker · RetryManager · DLQ · DistributedLock      │
-└──────────┬──────────┬────────────────┬──────────┬──────────┘
-           │          │                │          │
-    ┌──────▼──┐ ┌─────▼──┐ ┌──────────▼─┐ ┌─────▼──────┐
-    │Postgres │ │MongoDB │ │   Redis    │ │   Vector   │
-    │SQL/ACID │ │Docs/FTS│ │Cache/TTL  │ │Embeddings │
-    └─────────┘ └────────┘ └────────────┘ └────────────┘
 ```
 
-<br/>
+**Every layer has a job:**
+
+| Layer | Responsibility | Key Innovation |
+|:------|:---------------|:---------------|
+| **L1** | Framework adapters | Native middleware for Next.js, Express, Fastify |
+| **L2** | Developer-facing API | One interface across all backends |
+| **L3** | Query compilation | Unified AST → native SQL / MQL / Vector queries |
+| **L4** | Orchestration brain | Field-level routing based on intent annotations |
+| **L5** | Operational safety | Transparent caching, migrations, metrics |
+| **L6** | Storage abstraction | Hot-swappable plugin system |
+| **L7** | Physical databases | Production-grade adapters with connection pools |
+
+<br />
 
 ---
 
-<br/>
+<br />
 
-## Benchmarks
+## 🔬 Core Engine Deep Dive
 
-> Tested on Apple M-series · 10,000 parallel inserts · Mock polyglot topology
+### The Kinetic Router (L3 → L4)
 
-| Metric              | Result             |
-|---------------------|--------------------|
-| Peak throughput     | **70,000+ ops/sec**|
-| p50 latency         | **~11ms**          |
-| p99 latency         | **44ms**           |
-| Analytics query     | **0ms** (6.6GB)    |
-| Edge cache hit      | **0.00ms**         |
-| Circuit breaker     | **Trips in 3 failures** |
-| Test suite          | **18 / 18 ✓**      |
+Traditional ORMs force a 1:1 mapping between your model and a single database. SynapseDB's **Kinetic Router** breaks this constraint.
 
-<br/>
+When you call `db.defineCollection()`, the router inspects every field annotation:
 
----
+- `transactional: true` → routes to SQL (ACID guarantees)
+- `flexible: true` → routes to NoSQL (schema-less storage)
+- `cached: true, ttl: N` → routes to Cache (sub-ms reads)
+- `type: 'vector'` → routes to Vector DB (ANN similarity search)
 
-<br/>
+It generates a **Collection Routing Map** — a deterministic plan describing which plugin owns which field. At query time, the engine compiles a parallel **Execution DAG** (Directed Acyclic Graph) that fetches data from multiple backends concurrently and joins results by primary key.
 
-## Test Suite
+### The Unified Query Compiler (L3)
 
-SynapseDB ships with a 7-phase production-grade test harness — not unit tests, *chaos engineering*.
-
-```
-Phase 1 — Correctness       CRUD lifecycle · idempotency · virtual merges
-Phase 2 — Performance       10,000 parallel inserts · p50/p95/p99 percentiles
-Phase 3 — Chaos Engineering ECONNREFUSED · packet loss · 6000ms latency inject
-Phase 4 — Distributed Edge  4-region routing · cache hit/miss · CRDT flush
-Phase 5 — Autonomous Tuning Read DDoS simulation · write storm · heatmap verify
-Phase 6 — Zero-ETL Analytics CDC ingestion · SUM/AVG/GROUP · sub-ms queries
-Phase 7 — Multi-Tenancy     Context isolation · cross-tenant breach rejection
-```
-
-**Run the full suite:**
-
-```bash
-# Clone and install
-git clone https://github.com/prudhviraj0310/synapsedb
-cd synapsedb && npm install
-
-# Build all packages
-npm run build --workspaces
-
-# Run the 7-phase comprehensive test
-npx tsx apps/demo/src/comprehensive-test.ts
-
-# Run the OS mega-test (real files, real latencies)
-npx tsx apps/demo/src/os-test.ts
-
-# Run the global stress test
-npx tsx apps/demo/src/global-stress-test.ts
-```
-
-<br/>
-
-**Expected output:**
-
-```
-═══════════════════════════════════════════════════════════════
-  📋 SYNAPSEDB — FINAL TEST REPORT
-═══════════════════════════════════════════════════════════════
-  Tests Passed:    18
-  Tests Failed:    0
-  Ops/Second:      70,000+ req/s
-  p50 Latency:     11ms
-  p99 Latency:     44ms
-  Failures Caught: 3
-═══════════════════════════════════════════════════════════════
-```
-
-<br/>
-
----
-
-<br/>
-
-## Monorepo Structure
-
-```
-OmniDB/
-├── packages/
-│   ├── core/                    # @synapsedb/core — The brain
-│   │   └── src/
-│   │       ├── engine.ts        # SynapseEngine — main entry point
-│   │       ├── compiler/        # Unified Query Compiler (AST → native)
-│   │       ├── router/          # Kinetic Routing Engine
-│   │       ├── merger.ts        # Virtual Join Engine
-│   │       ├── cdc/             # Change Data Capture + sync
-│   │       ├── analytics/       # CDCAnalyticsBridge
-│   │       ├── edge/            # EdgeRouter · EdgeKVStore · CRDT
-│   │       └── resilience/      # CircuitBreaker · DLQ · RetryManager
-│   │
-│   └── sdk/                     # @synapsedb/sdk — Developer experience
-│       └── src/
-│           ├── manifest.ts      # defineManifest() — intent declarations
-│           └── collection.ts    # Collection API proxy
-│
-└── apps/
-    └── demo/
-        └── src/
-            ├── comprehensive-test.ts   # 7-phase chaos test suite
-            ├── os-test.ts              # 3-pillar unified demo
-            └── global-stress-test.ts  # 10k parallel load test
-```
-
-<br/>
-
----
-
-<br/>
-
-## Resilience
-
-SynapseDB treats failure as a first-class citizen.
-
-| Mechanism            | Behaviour                                                   |
-|----------------------|-------------------------------------------------------------|
-| **Circuit Breaker**  | Opens after 3 failures. Fast-fails until DB recovers.       |
-| **Retry Manager**    | Exponential backoff. Configurable attempts + delay.         |
-| **Dead Letter Queue**| Failed writes captured. Replayed automatically on recovery. |
-| **Distributed Lock** | Prevents race conditions on concurrent writes.              |
-| **Idempotency Keys** | Duplicate requests deduplicated at the engine layer.        |
-| **Saga Rollback**    | STRONG consistency mode rolls back partial writes atomically.|
-| **Chaos Engine**     | Built-in latency injection + outage simulation for testing. |
-
-<br/>
-
----
-
-<br/>
-
-## Consistency Models
+Every developer query is compiled into a **QueryAST** — an intermediate representation that is database-agnostic:
 
 ```typescript
-// EVENTUAL — async propagation, maximum throughput
-const engine = new SynapseEngine({
-  topology: { consistency: 'EVENTUAL' }
-});
-
-// STRONG — synchronous saga pattern, full rollback on failure
-const engine = new SynapseEngine({
-  topology: { consistency: 'STRONG' }
-});
+interface QueryAST {
+  type: 'FIND' | 'FIND_ONE' | 'INSERT' | 'UPDATE' | 'DELETE' | 'SEARCH' | 'COUNT';
+  collection: string;
+  filters?: FilterGroup;
+  projection?: string[];
+  sort?: SortSpec[];
+  limit?: number;
+  offset?: number;
+  vectorQuery?: { field: string; vector: number[]; topK: number };
+}
 ```
 
-<br/>
+The compiler then emits native queries for each backend:
+- **SQL Emitter** → `SELECT id, email FROM users WHERE email = $1`
+- **Document Emitter** → `db.users.findOne({ email: 'alex@synapse.io' })`
+- **Vector Emitter** → Cosine similarity search against embedding index
+
+### CDC Sync Engine (L4)
+
+SynapseDB maintains **eventual consistency** across backends using Change Data Capture:
+
+1. A write to PostgreSQL emits a `ChangeEvent`
+2. The `Propagator` captures it and fans out to Redis (cache invalidation) and MongoDB (document sync)
+3. Conflict resolution uses Last-Write-Wins with vector clocks
+4. Failed propagations land in a **Dead Letter Queue** for manual replay
+
+### Resilience Layer (L4)
+
+Production systems fail. SynapseDB survives:
+
+- **Circuit Breakers** — If PostgreSQL goes down, the engine automatically falls back to MongoDB for reads
+- **Retry Manager** — Exponential backoff with jitter for transient failures
+- **Idempotency Store** — Duplicate writes are detected and suppressed
+- **Write Buffer** — Batches small writes into efficient bulk operations
+
+### Intelligence Layer (v0.3)
+
+SynapseDB doesn't just route data — it learns from it:
+
+- **Workload Analyzer** — Monitors query patterns and promotes hot data to cache automatically
+- **Cold Storage Archiver** — Detects untouched rows and archives them to S3/GCS
+- **Natural Language Queries** — Convert English to QueryAST: `"find users who signed up last week"` → `{ type: 'FIND', filters: ... }`
+
+<br />
 
 ---
 
-<br/>
+<br />
 
-## Roadmap
+## 🎮 The Terminal OS
 
-- [x] Core orchestration engine
-- [x] Unified Query Compiler (AST → native)
-- [x] Virtual Join Engine (`merger.ts`)
-- [x] CDC Sync + Zero-ETL Analytics
-- [x] Edge routing + CRDT offline writes
-- [x] Autonomous Workload Analyzer
-- [x] CircuitBreaker + DLQ + RetryManager
-- [x] Multi-tenancy context isolation
-- [x] 7-phase comprehensive test suite
-- [ ] `npx synapsedb` CLI
-- [ ] Dashboard UI (metrics + query explorer)
-- [ ] Docker + Cloud deployment templates
-- [ ] Public SDK release (`npm install @synapsedb/core`)
-- [ ] Plugin system for custom storage adapters
+SynapseDB ships with a cinematic terminal interface built on `blessed-contrib`. These aren't dashboards — they are **operational control surfaces**.
 
-<br/>
+### 13 Autonomous Commands
+
+<table>
+<tr>
+<td width="50%">
+
+#### 🖥️ Monitoring & Telemetry
+| Command | What It Does |
+|:--------|:-------------|
+| `synapse dev` | Interactive 60FPS telemetry dashboard with mode switching |
+| `synapse pulse` | Network topology sonar — pings every microservice |
+| `synapse map` | ASCII world globe with live packet routing animation |
+| `synapse trace` | Visual query execution path through the routing layers |
+
+</td>
+<td width="50%">
+
+#### ⚔️ Chaos & Security
+| Command | What It Does |
+|:--------|:-------------|
+| `synapse play ddos` | Simulate a 14K req/sec L7 DDoS and watch auto-mitigation |
+| `synapse guard` | Real-time SQL injection firewall with quarantine zone |
+| `synapse lock` | Matrix-style PII sweep encrypting data to SHA-256 |
+| `synapse nuke` | Emergency OOM purge — visually melts cache to save the server |
+
+</td>
+</tr>
+<tr>
+<td>
+
+#### 🔧 Recovery & Operations
+| Command | What It Does |
+|:--------|:-------------|
+| `synapse heal` | Autonomous schema surgery — detects missing columns, injects SQL |
+| `synapse freeze` | Zero-ETL data archival with live AWS cost savings counter |
+| `synapse replay --incident ddos-114` | Forensic incident reconstruction |
+
+</td>
+<td>
+
+#### 🧠 Intelligence
+| Command | What It Does |
+|:--------|:-------------|
+| `synapse chat` | Split-pane AI copilot analyzing live telemetry in natural language |
+| `synapse ghost` | Shadow traffic replicator — mirrors prod to staging |
+| `synapse warp` | Billion-row migration engine with speed benchmarks |
+
+</td>
+</tr>
+</table>
+
+### Interactive Modes (`synapse dev`)
+
+While the dashboard is running, press:
+
+| Key | Mode | Behavior |
+|:---:|:-----|:---------|
+| `A` | **Aggressive** | Maximum throughput, minimal cache TTL |
+| `S` | **Safe** | Conservative routing, extended health checks |
+| `C` | **Cost-Saver** | Compress connections, extend cold archival |
+| `B` | **Balanced** | Default production profile |
+| `Q` | **Exit** | Clean teardown, no zombie processes |
+
+<br />
 
 ---
 
-<br/>
+<br />
 
-<div align="center">
+## 📦 Monorepo Structure
 
-**Built in TypeScript. Tested under chaos. Running at the edge.**
+```
+synapsedb/
+├── packages/
+│   ├── core/                    # The 7-layer engine (50K+ lines)
+│   │   ├── compiler/            #   L3 — AST Compiler + SQL/MQL/Vector emitters
+│   │   ├── router/              #   L4 — Kinetic Router + Execution Planner
+│   │   ├── joiner/              #   L4 — Cross-backend result merging
+│   │   ├── sync/                #   L4 — CDC, Event Bus, CRDT conflict resolution
+│   │   ├── detector/            #   L4 — Auto-detect databases from connection URIs
+│   │   ├── bridge/              #   L4 — Feature capability negotiation
+│   │   ├── middleware/          #   L5 — Cache, Migrations, Observability, Write Buffer
+│   │   ├── plugin/              #   L6 — Plugin Registry + Health Monitor
+│   │   ├── intelligence/        #   Workload Analyzer, NLQ Engine
+│   │   ├── analytics/           #   Aggregation Engine, CDC Analytics Bridge
+│   │   ├── storage/             #   Cold Storage Archiver
+│   │   ├── resilience/          #   Circuit Breaker, Retry, DLQ, Idempotency
+│   │   └── edge/                #   Edge KV Store, Edge Router
+│   │
+│   ├── cli/                     # Terminal OS (13 cinematic commands)
+│   │   ├── bin/synapsedb.ts     #   Commander.js entry point
+│   │   ├── commands/            #   dev, play, map, guard, freeze, heal, chat...
+│   │   └── test/                #   Unit + E2E test suites (Vitest)
+│   │
+│   ├── sdk/                     # Client SDK for browser/Node consumers
+│   ├── express/                 # Express.js middleware adapter
+│   ├── fastify/                 # Fastify plugin adapter
+│   ├── nextjs/                  # Next.js API route adapter
+│   │
+│   └── plugins/                 # Storage backend adapters
+│       ├── plugin-postgres/     #   PostgreSQL (pg, connection pooling)
+│       ├── plugin-mongodb/      #   MongoDB (native driver)
+│       ├── plugin-redis/        #   Redis (ioredis, TTL management)
+│       └── plugin-vector/       #   Vector DB (Pinecone/Qdrant compatible)
+│
+├── apps/
+│   └── demo/                    # Full integration demo application
+│
+├── docs/                        # Architecture docs, API reference
+├── docker-compose.yml           # Local dev environment (PG + Redis + Mongo)
+└── tsconfig.base.json           # Shared TypeScript strict config
+```
 
-*Pre-production · v0.5.0 · MIT License*
+<br />
 
-<br/>
+---
 
-> *"Developers shouldn't choose databases.*
-> *Infrastructure should manage itself.*
-> *Data should automatically scale, optimize, and distribute globally."*
+<br />
 
-<br/>
+## 🔧 Installation
 
-[⭐ Star this repo](https://github.com/prudhviraj0310/synapsedb) · [🐛 Report an issue](https://github.com/prudhviraj0310/synapsedb/issues) · [💬 Start a discussion](https://github.com/prudhviraj0310/synapsedb/discussions)
+### As a Library (Embed in your app)
 
-</div>
+```bash
+npm install @synapsedb/core @synapsedb/plugin-postgres @synapsedb/plugin-redis
+```
+
+### As a CLI Tool (Terminal OS)
+
+```bash
+npm install -g @synapsedb/cli
+synapsedb dev
+```
+
+### As a Server (Standalone data gateway)
+
+```bash
+npx synapsedb init          # Interactive project setup
+docker-compose up -d        # Start PostgreSQL + Redis + MongoDB
+npm start                   # Launch the REST API server
+```
+
+<br />
+
+---
+
+<br />
+
+## 🧪 Testing
+
+SynapseDB uses a tiered testing strategy designed for CI/CD environments where terminal screens don't exist.
+
+```bash
+# Run all workspace tests
+npm test
+
+# Run CLI-specific tests (Unit + E2E binary execution)
+npm test -w packages/cli
+
+# Run core engine integration tests
+npm run test:integration
+```
+
+**Testing Architecture:**
+
+| Tier | What It Tests | How |
+|:-----|:-------------|:----|
+| **Unit** | All 13 command handlers export valid functions | Direct import assertion |
+| **E2E** | Compiled binary routes all commands correctly | `child_process.spawnSync()` against `dist/` |
+| **Integration** | Core engine query routing across plugins | Live database connections |
+
+<br />
+
+---
+
+<br />
+
+## 🗺️ Roadmap
+
+- [x] **v0.1** — Core engine, plugin system, query compiler
+- [x] **v0.2** — Terminal OS (13 commands), CDC sync, middleware layer
+- [ ] **v0.3** — Production hardening (connection pool tuning, query plan caching)
+- [ ] **v0.4** — Real LLM integration for `synapse chat` (Ollama / OpenAI)
+- [ ] **v0.5** — Distributed mode (multi-node Synapse clusters)
+- [ ] **v1.0** — Managed cloud service
+
+<br />
+
+---
+
+<br />
+
+## 🤝 Contributing
+
+We welcome contributions across every layer of the stack.
+
+```bash
+git clone https://github.com/prudhviraj0310/synapsedb.git
+cd synapsedb
+npm install
+npm run build
+npm test
+```
+
+**Quick contribution paths:**
+- **New storage plugin** — Implement the `StoragePlugin` interface in `packages/plugins/`
+- **New CLI command** — Add a handler in `packages/cli/src/commands/` and register in `bin/synapsedb.ts`
+- **New framework adapter** — Follow the pattern in `packages/express/`
+- **Bug fixes** — Run `synapse dev` for 60 seconds and report anything weird
+
+<br />
+
+---
+
+<br />
+
+## 📄 License
+
+MIT © [SynapseDB Contributors](https://github.com/prudhviraj0310/synapsedb)
+
+<br />
+
+---
+
+<p align="center">
+  <br />
+  <strong>Stop choosing databases. Start describing data.</strong>
+  <br /><br />
+  <code>npx synapsedb dev</code>
+  <br /><br />
+  <sub>Built with obsessive attention to detail by engineers who believe infrastructure should feel alive.</sub>
+  <br /><br />
+</p>
