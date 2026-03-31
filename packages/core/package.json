@@ -21,7 +21,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "fastify": "^5.2.0"
+    "@types/ws": "^8.18.1",
+    "fastify": "^5.2.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "tsx": "^4.19.0",

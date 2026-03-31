@@ -66,9 +66,9 @@ export class DuckDBPlugin implements IStoragePlugin {
     };
   }
 
-  async ensureCollection(manifest: CollectionManifest): Promise<void> {
+  async syncSchema(manifest: CollectionManifest, fields: Record<string, FieldDescriptor>): Promise<void> {
     if (!this.db) return;
-    const fields = Object.entries(manifest.fields)
+    const strFields = Object.entries(manifest.fields)
       .map(([name, desc]) => {
         let sqlType = 'VARCHAR';
         if (desc.type === 'integer' || desc.type === 'number') sqlType = 'DOUBLE';
@@ -80,7 +80,7 @@ export class DuckDBPlugin implements IStoragePlugin {
       })
       .join(', ');
 
-    const sql = `CREATE TABLE IF NOT EXISTS "${manifest.name}" (${fields})`;
+    const sql = `CREATE TABLE IF NOT EXISTS "${manifest.name}" (${strFields})`;
     await this.runQuery(sql);
     this.logger?.info(`DuckDB: ensured table "${manifest.name}"`);
   }
@@ -123,4 +123,6 @@ export class DuckDBPlugin implements IStoragePlugin {
   }
 }
 
-export default DuckDBPlugin;
+export default function createDuckDBPlugin(config: PluginConfig): IStoragePlugin {
+  return new DuckDBPlugin(config);
+}
