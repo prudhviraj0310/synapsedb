@@ -27,6 +27,7 @@
     "dev": "npm run dev -w packages/core",
     "test": "npm run test --workspaces --if-present",
     "test:integration": "npm run test:integration -w packages/core",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "format": "prettier --write .",
     "clean": "rm -rf packages/*/dist apps/*/dist node_modules/.cache"
