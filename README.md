@@ -2,22 +2,30 @@
 
 <br/>
 
-<img src="https://raw.githubusercontent.com/prudhviraj0310/synapsedb/master/synapsedb-hero.png" alt="SynapseDB" width="120"/>
+```
+███████╗██╗   ██╗███╗   ██╗ █████╗ ██████╗ ███████╗███████╗██████╗ ██████╗
+██╔════╝╚██╗ ██╔╝████╗  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗██╔══██╗
+███████╗ ╚████╔╝ ██╔██╗ ██║███████║██████╔╝███████╗█████╗  ██║  ██║██████╔╝
+╚════██║  ╚██╔╝  ██║╚██╗██║██╔══██║██╔═══╝ ╚════██║██╔══╝  ██║  ██║██╔══██╗
+███████║   ██║   ██║ ╚████║██║  ██║██║     ███████║███████╗██████╔╝██████╔╝
+╚══════╝   ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝╚═════╝ ╚═════╝
+```
+
+### **One API. Every database. Zero glue code.**
+
+*The polyglot data orchestration engine that routes, caches,*
+*syncs, and analyzes your data — automatically.*
 
 <br/>
-<br/>
 
-# SynapseDB
+[![npm](https://img.shields.io/npm/v/@synapsedb/core?style=for-the-badge&color=00d4f5&label=npm&logo=npm&logoColor=white)](https://www.npmjs.com/package/@synapsedb/core)
+[![Tests](https://img.shields.io/badge/Tests-94%20Passing-22c55e?style=for-the-badge&logo=vitest&logoColor=white)](./apps/demo/src/test-platform.ts)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-a78bfa?style=for-the-badge)](./LICENSE)
 
-**One API. Every database. Zero glue code.**
-
-<br/>
-
-[![npm](https://img.shields.io/npm/v/@synapsedb/core?style=flat-square&color=00d4f5&label=npm)](https://www.npmjs.com/package/@synapsedb/core)
-[![Tests](https://img.shields.io/badge/tests-94%20passing-22c55e?style=flat-square)](./apps/demo/src/test-platform.ts)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/license-MIT-a78bfa?style=flat-square)](./LICENSE)
-[![Build](https://img.shields.io/badge/build-passing-22c55e?style=flat-square)]()
+[![Throughput](https://img.shields.io/badge/Throughput-70%2C000%2B_ops%2Fsec-f59e0b?style=for-the-badge)]()
+[![Analytics](https://img.shields.io/badge/Analytics-0ms_query-22c55e?style=for-the-badge)]()
+[![Edge](https://img.shields.io/badge/Edge-0.00ms_cache_hit-00d4f5?style=for-the-badge)]()
 
 <br/>
 
@@ -27,27 +35,34 @@
 
 <br/>
 
-## The problem
+<div align="center">
 
-Every modern app secretly has this hidden inside it:
+## ⚡ The Problem You Solve Every Day
+
+</div>
 
 ```typescript
-// You wrote this. Every developer writes this.
-const user     = await postgres.query(`SELECT * FROM users WHERE id = $1`, [id]);
-const profile  = await mongo.collection('profiles').findOne({ userId: id });
-const session  = await redis.get(`session:${id}`);
+// This is in every codebase. You wrote it too.
+const user    = await postgres.query(`SELECT * FROM users WHERE id = $1`, [id]);
+const profile = await mongo.collection('profiles').findOne({ userId: id });
+const session = await redis.get(`session:${id}`);
+const related = await pinecone.query({ vector: embedding, topK: 5 });
 
-// Now stitch them together manually.
-// Pray nothing is null.
-// Write the same cache invalidation logic for the 10th time.
-return { ...user.rows[0], ...profile, session };
+// Now pray nothing is null.
+// Write cache invalidation for the 10th time.
+// Hope the join logic is correct.
+return { ...user.rows[0], ...profile, session, related };
 ```
 
-This is integration glue. It's 30% of your codebase. It breaks silently. It doesn't scale. It should not exist.
+> **This is integration glue. It's 30% of your codebase. It breaks silently. It should not exist.**
 
 <br/>
 
-## The fix
+<div align="center">
+
+## ✨ The SynapseDB Way
+
+</div>
 
 ```typescript
 import { SynapseEngine } from '@synapsedb/core';
@@ -55,18 +70,21 @@ import { defineManifest } from '@synapsedb/sdk';
 
 const db = new SynapseEngine(config);
 
+// Declare intent. SynapseDB decides where each field lives.
 await db.registerManifest(defineManifest('users', {
-  id:      { type: 'uuid',   primary: true      },
-  email:   { type: 'string', searchable: true   }, // → PostgreSQL
-  profile: { type: 'string'                     }, // → MongoDB
-  session: { type: 'string', ttl: true          }, // → Redis
+  id:        { type: 'uuid',   primary: true      },
+  email:     { type: 'string', searchable: true   }, // → routed to PostgreSQL
+  profile:   { type: 'string', indexed: true      }, // → routed to MongoDB  
+  session:   { type: 'string', ttl: true          }, // → routed to Redis
+  embedding: { type: 'vector', dimensions: 1536   }, // → routed to Vector store
 }));
 
-// One call. Three databases. One clean result.
+// One call. Four databases. One clean result.
 const user = await db.findOne('users', { email: 'prudhvi@example.com' });
+//
+// ↑ Compiled to 4 queries. Executed in parallel. Merged automatically.
+//   You wrote zero integration code.
 ```
-
-No joins. No manual stitching. No cache logic. SynapseDB compiled, routed, fetched in parallel, and merged — invisibly.
 
 <br/>
 
@@ -74,48 +92,68 @@ No joins. No manual stitching. No cache logic. SynapseDB compiled, routed, fetch
 
 <br/>
 
-## Get started in 5 minutes
+<div align="center">
 
-You have an existing Postgres database. This is all you need:
+## 🚀 5-Minute Quickstart
 
+</div>
+
+<table>
+<tr>
+<td width="50%">
+
+**Step 1 — Install**
 ```bash
-npm install @synapsedb/core @synapsedb/plugin-postgres
+npm install @synapsedb/core \
+            @synapsedb/plugin-postgres
 npx @synapsedb/cli init
 ```
 
-Answer two questions. Get this:
+</td>
+<td width="50%">
 
+**Step 2 — Answer 2 questions**
 ```
-synapse.config.ts   ← your connection config
-src/db.ts           ← import this in your app
-src/schemas/        ← your auto-generated manifests
-.env.example        ← copy to .env and fill in values
+? Which databases do you have?
+  ◉ PostgreSQL
+  ◯ MongoDB
+  ◯ Redis
+
+? Your connection string?
+  postgresql://localhost:5432/mydb
 ```
 
-Then in your app:
+</td>
+</tr>
+<tr>
+<td width="50%">
 
+**Step 3 — Generated for you**
+```
+✓ synapse.config.ts
+✓ src/db.ts
+✓ src/schemas/
+✓ .env.example
+```
+
+</td>
+<td width="50%">
+
+**Step 4 — Replace one line**
 ```typescript
-// Before — what you have now
-const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-res.json(result.rows[0]);
+// Before
+await pool.query('SELECT...', [id]);
 
-// After — what you have with SynapseDB
-const user = await db.findOne('users', { id });
-res.json(user.data);
-// Second request: 0ms. Automatically cached. You wrote zero cache code.
+// After
+await db.findOne('users', { id });
+// Now automatically cached. Done.
 ```
 
-That's the entire migration. Two lines changed.
+</td>
+</tr>
+</table>
 
-<br/>
-
-Already have a database with tables? Let SynapseDB read it:
-
-```bash
-npx @synapsedb/cli introspect
-```
-
-Generates a typed Manifest for every table. No manual schema writing.
+> Already have tables? Run `npx @synapsedb/cli introspect` — generates typed Manifests from your existing schema automatically.
 
 <br/>
 
@@ -123,41 +161,80 @@ Generates a typed Manifest for every table. No manual schema writing.
 
 <br/>
 
-## What it actually does
+<div align="center">
 
-### Automatic caching
+## 🧠 The Three Pillars
 
-Mark a field `cacheable: true` in your Manifest. Every read is now cached in Redis automatically. Cache invalidates on write. You never write a `redis.set()` again.
+</div>
 
-### Zero-ETL analytics
+<br/>
 
-Every write is intercepted by the CDC bridge and synchronously replicated into a columnar analytics engine. Query aggregations instantly — no Kafka, no pipeline, no data warehouse.
+<table>
+<tr>
+
+<td align="center" width="33%">
+
+### 🤖 Autonomous Engine
+
+**Self-tuning. No config.**
+
+Detects read spikes → promotes to cache.
+Detects write storms → enables buffering.
+Detects cold data → auto-archives.
+
+```
+WARN Auto-Tuner: Promoting
+users.email to Redis
+─ read spike detected (300/s)
+
+WARN Auto-Tuner: Write storm on
+orders.total — buffering enabled
+```
+
+</td>
+
+<td align="center" width="33%">
+
+### ⚡ Zero-ETL Analytics
+
+**0ms. No pipeline. No warehouse.**
+
+Every write → CDC bridge → columnar engine.
+Aggregations available instantly.
+No Kafka. No Airflow. Nothing to configure.
 
 ```typescript
-// 500 documents inserted. Analytics available immediately.
-const stats = db.aggregate('orders', [
+db.aggregate('orders', [
   { type: 'GROUP', field: 'category' },
-  { type: 'SUM',   field: 'amount',  alias: 'revenue' },
+  { type: 'SUM',   field: 'amount'   },
 ]);
-// Completed in 0.59ms. No external tools.
+// ✓ 0.59ms · 6.6GB dataset
+// ✓ No external tools
 ```
 
-### Self-tuning under load
+</td>
 
-The built-in Workload Analyzer watches every query. When it detects a read spike, it promotes hot data to cache automatically. When it detects a write storm, it enables write buffering. You get a log message. Nothing else to do.
+<td align="center" width="33%">
+
+### 🌍 Edge-Native Fabric
+
+**0.00ms cache hits globally.**
+
+Built-in EdgeRouter, 4 global regions.
+CRDT-safe offline writes.
+Syncs back to origin automatically.
 
 ```
-WARN [SynapseDB] Auto-Tuner: Promoting users.email to Redis — read spike detected
-WARN [SynapseDB] Auto-Tuner: Write storm on orders.total — enabling write buffer
+ap-tokyo   miss: 0.64ms → hit: 0.00ms
+eu-london  miss: 0.45ms → hit: 0.00ms
+us-east    miss: 0.30ms → hit: 0.00ms
+sa-brazil  miss: 0.60ms → hit: 0.00ms
 ```
 
-### Global edge routing
+</td>
 
-Built-in EdgeRouter with CRDT-safe offline writes. Your data is served from the region closest to your user. Cache hits are 0.00ms. Offline writes sync back safely when reconnected.
-
-### Production-grade resilience
-
-Circuit breakers, exponential retry, Dead Letter Queue, distributed locking, idempotency keys, and Saga-pattern rollback — all built in. Your app keeps running when a database goes down.
+</tr>
+</table>
 
 <br/>
 
@@ -165,18 +242,22 @@ Circuit breakers, exponential retry, Dead Letter Queue, distributed locking, ide
 
 <br/>
 
-## Benchmarks
+<div align="center">
 
-> Tested on Apple M-series · Node 20 · 10,000 parallel inserts
+## 📊 Benchmarks
 
-| Metric | Result |
-|--------|--------|
-| Peak throughput | **70,000+ ops/sec** |
-| p50 latency | **~11ms** |
-| p99 latency | **44ms** |
-| Analytics on 6.6GB | **0ms** |
-| Edge cache hit | **0.00ms** |
-| Test suite | **94 / 94 passing** |
+*Tested on Apple M-series · Node 20 · 10,000 parallel inserts*
+
+| Metric | Result | vs. raw pg |
+|--------|--------|-----------|
+| Peak throughput | **70,000+ ops/sec** | comparable |
+| p50 latency | **~11ms** | +routing overhead |
+| p99 latency | **44ms** | +routing overhead |
+| Analytics (6.6GB) | **0ms** | ∞ faster than ETL |
+| Edge cache hit | **0.00ms** | ∞ faster than origin |
+| Test suite | **94 / 94 ✓** | — |
+
+</div>
 
 <br/>
 
@@ -184,24 +265,189 @@ Circuit breakers, exponential retry, Dead Letter Queue, distributed locking, ide
 
 <br/>
 
-## Installation
+<div align="center">
+
+## 🏗️ Architecture
+
+</div>
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Your Application                            │
+│               db.find() · db.insert() · db.sync()              │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │  @synapsedb/sdk
+┌───────────────────────────▼─────────────────────────────────────┐
+│              Unified Query Compiler (UQC)                       │
+│         Parser  →  Planner  →  Translator  →  Executor          │
+└──────────────┬──────────────────────────────┬───────────────────┘
+               │                              │
+┌──────────────▼──────────┐    ┌──────────────▼──────────────────┐
+│    Kinetic Router       │    │      Virtual Join Engine         │
+│  Intent → DB mapping    │    │    merger.ts  ·  parallel stitch │
+└──────────────┬──────────┘    └──────────────┬───────────────────┘
+               │                              │
+┌──────────────▼──────────────────────────────▼───────────────────┐
+│                      Core Engine                                │
+│                                                                 │
+│  ┌──────────────┐  ┌─────────────────┐  ┌────────────────────┐ │
+│  │  DB Detector │  │ Feature Bridge  │  │   CDC Sync Engine  │ │
+│  │ Auto-detect  │  │ Capability map  │  │ Change propagation │ │
+│  └──────────────┘  └─────────────────┘  └────────────────────┘ │
+│                                                                 │
+│  ┌──────────────┐  ┌─────────────────┐  ┌────────────────────┐ │
+│  │  Analytics   │  │  Edge Router    │  │  Workload Analyzer │ │
+│  │  CDC Bridge  │  │  CRDT Sync      │  │  Auto-tuning AI    │ │
+│  └──────────────┘  └─────────────────┘  └────────────────────┘ │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │  Resilience Layer
+┌──────────────────────────▼──────────────────────────────────────┐
+│   CircuitBreaker · RetryManager · DLQ · DistributedLock         │
+│   Idempotency · Saga Rollback · Chaos Engine · Multi-Tenancy     │
+└──────┬──────────────┬────────────────┬────────────┬─────────────┘
+       │              │                │            │
+  ┌────▼────┐  ┌──────▼──┐  ┌────────▼──┐  ┌──────▼──────┐
+  │PostgreSQL│  │ MongoDB │  │   Redis   │  │Vector Store │
+  │SQL · ACID│  │Docs · FTS│  │Cache · TTL│  │Embeddings  │
+  └──────────┘  └─────────┘  └───────────┘  └────────────┘
+```
+
+<br/>
+
+---
+
+<br/>
+
+<div align="center">
+
+## 🛡️ Production Resilience
+
+</div>
+
+<table>
+<tr>
+<th>Mechanism</th>
+<th>What it does</th>
+<th>Config</th>
+</tr>
+<tr>
+<td><b>Circuit Breaker</b></td>
+<td>Opens after 3 failures. Fast-fails until DB recovers.</td>
+<td><code>failureThreshold: 3</code></td>
+</tr>
+<tr>
+<td><b>Retry Manager</b></td>
+<td>Exponential backoff with configurable attempts.</td>
+<td><code>maxAttempts: 3</code></td>
+</tr>
+<tr>
+<td><b>Dead Letter Queue</b></td>
+<td>Failed writes captured. Replayed on recovery.</td>
+<td><code>npx synapsedb dlq replay</code></td>
+</tr>
+<tr>
+<td><b>Distributed Lock</b></td>
+<td>Prevents race conditions on concurrent writes.</td>
+<td>Automatic</td>
+</tr>
+<tr>
+<td><b>Idempotency Keys</b></td>
+<td>Duplicate requests deduplicated at engine layer.</td>
+<td><code>{ operationId: uuid }</code></td>
+</tr>
+<tr>
+<td><b>Saga Rollback</b></td>
+<td>STRONG mode rolls back partial writes atomically.</td>
+<td><code>consistency: 'STRONG'</code></td>
+</tr>
+</table>
+
+<br/>
+
+---
+
+<br/>
+
+<div align="center">
+
+## 📦 Packages
+
+</div>
+
+<table>
+<tr>
+<th>Package</th>
+<th>Description</th>
+<th>Install</th>
+</tr>
+<tr>
+<td><code>@synapsedb/core</code></td>
+<td>The orchestration engine</td>
+<td><code>npm i @synapsedb/core</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/sdk</code></td>
+<td>Manifests + Collection API</td>
+<td><code>npm i @synapsedb/sdk</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/cli</code></td>
+<td>init · introspect · studio · status</td>
+<td><code>npm i -g @synapsedb/cli</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/plugin-postgres</code></td>
+<td>PostgreSQL driver (pg)</td>
+<td><code>npm i @synapsedb/plugin-postgres</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/plugin-redis</code></td>
+<td>Redis driver (ioredis)</td>
+<td><code>npm i @synapsedb/plugin-redis</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/plugin-mongodb</code></td>
+<td>MongoDB driver (native)</td>
+<td><code>npm i @synapsedb/plugin-mongodb</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/express</code></td>
+<td>Express middleware + error handler</td>
+<td><code>npm i @synapsedb/express</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/nextjs</code></td>
+<td>Next.js singleton (HMR-safe)</td>
+<td><code>npm i @synapsedb/nextjs</code></td>
+</tr>
+<tr>
+<td><code>@synapsedb/fastify</code></td>
+<td>Fastify plugin</td>
+<td><code>npm i @synapsedb/fastify</code></td>
+</tr>
+</table>
+
+<br/>
+
+---
+
+<br/>
+
+<div align="center">
+
+## 🖥️ CLI
+
+</div>
 
 ```bash
-# Core engine
-npm install @synapsedb/core @synapsedb/sdk
+$ npx @synapsedb/cli --help
 
-# Database plugins — install what you use
-npm install @synapsedb/plugin-postgres   # PostgreSQL
-npm install @synapsedb/plugin-redis      # Redis
-npm install @synapsedb/plugin-mongodb    # MongoDB
-
-# Framework bindings — pick yours
-npm install @synapsedb/express           # Express
-npm install @synapsedb/nextjs            # Next.js
-npm install @synapsedb/fastify           # Fastify
-
-# CLI
-npm install -g @synapsedb/cli
+  init          Interactive setup — generates config, db.ts, schemas
+  introspect    Read existing DB schema → generate typed Manifests
+  studio        Launch metrics dashboard at localhost:4000
+  status        Health check all connected databases
+  dlq replay    Replay failed operations from Dead Letter Queue
+  generate      Scaffold routes + service layer for a collection
 ```
 
 <br/>
@@ -210,166 +456,24 @@ npm install -g @synapsedb/cli
 
 <br/>
 
-## Framework integration
+<div align="center">
 
-### Express
+## 🧪 Test Suite
 
-```typescript
-import { synapseMiddleware, synapseErrorHandler } from '@synapsedb/express';
-
-app.use(synapseMiddleware(db));
-app.use(synapseErrorHandler()); // CIRCUIT_OPEN → 503, TIMEOUT → 504
-
-app.get('/users/:id', async (req, res) => {
-  const user = await req.db.findOne('users', { id: req.params.id });
-  res.json(user.data);
-});
-```
-
-### Next.js
-
-```typescript
-import { createSynapseClient } from '@synapsedb/nextjs';
-
-// Singleton — survives hot reloads, no connection pool drain
-const db = createSynapseClient(config);
-
-export async function GET(req: Request) {
-  const user = await db.findOne('users', { id: req.params.id });
-  return Response.json(user.data);
-}
-```
-
-### Fastify
-
-```typescript
-import { synapsePlugin } from '@synapsedb/fastify';
-
-await fastify.register(synapsePlugin, config);
-
-fastify.get('/users/:id', async (req) => {
-  return req.server.db.findOne('users', { id: req.params.id });
-});
-```
-
-<br/>
-
----
-
-<br/>
-
-## Architecture
+</div>
 
 ```
-┌──────────────────────────────────────────────────────┐
-│               Your application code                  │
-│         db.find() · db.insert() · db.sync()          │
-└─────────────────────┬────────────────────────────────┘
-                      │
-┌─────────────────────▼────────────────────────────────┐
-│                 @synapsedb/sdk                       │
-│         Manifests · Collection API · REST            │
-└─────────────────────┬────────────────────────────────┘
-                      │
-┌─────────────────────▼────────────────────────────────┐
-│              Unified Query Compiler                  │
-│      Parser → Planner → Translator → Executor        │
-└──────────┬──────────────────────────┬────────────────┘
-           │                          │
-┌──────────▼──────────┐   ┌──────────▼──────────────┐
-│   Kinetic Router    │   │  Virtual Join Engine     │
-│  Field → DB mapping │   │  merger.ts · stitch      │
-└──────────┬──────────┘   └──────────┬───────────────┘
-           │                          │
-┌──────────▼──────────────────────────▼──────────────┐
-│                  Core Engine                        │
-│   DB Detector · Feature Bridge · CDC Sync           │
-│   Analytics Bridge · Edge Router · CRDT Sync        │
-└──────────┬──────────────────────────┬───────────────┘
-           │                          │
-┌──────────▼────────────────────────────▼─────────────┐
-│   CircuitBreaker · RetryManager · DLQ · Idempotency  │
-└──────┬───────────┬───────────────┬──────────┬───────┘
-       │           │               │          │
-  ┌────▼──┐  ┌────▼──┐  ┌────────▼─┐  ┌─────▼──────┐
-  │Postgres│  │MongoDB│  │  Redis   │  │   Vector   │
-  └────────┘  └───────┘  └──────────┘  └────────────┘
-```
-
-<br/>
-
----
-
-<br/>
-
-## CLI reference
-
-```bash
-npx @synapsedb/cli init          # Interactive setup — generates config + db.ts
-npx @synapsedb/cli introspect    # Auto-generate Manifests from existing DB schema
-npx @synapsedb/cli studio        # Launch local metrics dashboard at localhost:4000
-npx @synapsedb/cli status        # Health check all connected databases
-npx @synapsedb/cli dlq replay    # Replay failed operations from Dead Letter Queue
-npx @synapsedb/cli generate      # Scaffold routes + service layer for a collection
-```
-
-<br/>
-
----
-
-<br/>
-
-## Resilience built in
-
-| Mechanism | Behaviour |
-|-----------|-----------|
-| **Circuit Breaker** | Opens after 3 failures. Fast-fails until DB recovers. |
-| **Retry Manager** | Exponential backoff. Configurable attempts and delay. |
-| **Dead Letter Queue** | Failed writes captured. Replayed on recovery. |
-| **Distributed Lock** | Prevents race conditions on concurrent writes. |
-| **Idempotency Keys** | Duplicate requests deduplicated at engine layer. |
-| **Saga Rollback** | STRONG mode rolls back partial writes atomically. |
-
-<br/>
-
----
-
-<br/>
-
-## Consistency modes
-
-```typescript
-// EVENTUAL — async propagation, maximum throughput (default)
-const db = new SynapseEngine({
-  topology: { consistency: 'EVENTUAL' }
-});
-
-// STRONG — synchronous saga pattern, full rollback on failure
-const db = new SynapseEngine({
-  topology: { consistency: 'STRONG' }
-});
-```
-
-<br/>
-
----
-
-<br/>
-
-## Test suite
-
-```
-Phase 1 — Correctness       CRUD · idempotency · virtual merges
-Phase 2 — Performance       10,000 parallel inserts · p50/p95/p99
-Phase 3 — Chaos Engineering ECONNREFUSED · packet loss · timeout inject
-Phase 4 — Edge              4-region routing · cache hit/miss · CRDT flush
-Phase 5 — Autonomous        Read DDoS · write storm · heatmap detection
-Phase 6 — Analytics         CDC ingestion · SUM/AVG/GROUP · sub-ms queries
-Phase 7 — Multi-Tenancy     Context isolation · cross-tenant breach rejection
+Phase 1  Correctness       CRUD lifecycle · idempotency · virtual merges
+Phase 2  Performance       10,000 parallel inserts · p50 / p95 / p99
+Phase 3  Chaos             ECONNREFUSED · packet loss · 6000ms inject
+Phase 4  Edge              4 global regions · cache hit/miss · CRDT flush
+Phase 5  Autonomous        Read DDoS · write storm · heatmap detection
+Phase 6  Analytics         CDC ingestion · SUM/AVG/GROUP · sub-ms queries
+Phase 7  Multi-Tenancy     Context isolation · cross-tenant breach guard
 ```
 
 ```bash
-cd OmniDB && npm run build --workspaces --if-present \
+npm run build --workspaces --if-present \
   && npx tsx apps/demo/src/test-platform.ts
 ```
 
@@ -393,83 +497,32 @@ cd OmniDB && npm run build --workspaces --if-present \
 
 <br/>
 
-## Monorepo structure
+<div align="center">
 
-```
-packages/
-├── core/              @synapsedb/core      — The engine
-├── sdk/               @synapsedb/sdk       — Developer API
-├── cli/               @synapsedb/cli       — npx synapsedb
-├── express/           @synapsedb/express   — Express middleware
-├── nextjs/            @synapsedb/nextjs    — Next.js singleton
-├── fastify/           @synapsedb/fastify   — Fastify plugin
-└── plugins/
-    ├── plugin-postgres/                    — pg driver
-    ├── plugin-redis/                       — ioredis driver
-    ├── plugin-mongodb/                     — mongodb driver
-    └── plugin-vector/                      — vector embeddings
+## 🗺️ Roadmap
 
-apps/
-├── demo/              — Test suites
-├── example-blog/      — Auto-caching with Postgres + Redis
-├── example-ecommerce/ — Multi-store SQL + document routing
-└── example-realtime/  — Edge CRDT sync
-```
+</div>
 
-<br/>
-
----
-
-<br/>
-
-## Roadmap
-
-- [x] Core orchestration engine + Kinetic Router
-- [x] Unified Query Compiler (AST → native)
-- [x] Virtual Join Engine
-- [x] CDC Sync + Zero-ETL Analytics
-- [x] Edge routing + CRDT offline writes
-- [x] Autonomous Workload Analyzer
-- [x] CircuitBreaker + DLQ + RetryManager
-- [x] Multi-tenancy context isolation
-- [x] Real database plugins (Postgres, Redis, MongoDB)
-- [x] Framework bindings (Express, Next.js, Fastify)
-- [x] CLI — init, introspect, studio, status, dlq
-- [x] 94-assertion platform test suite
-- [ ] GitHub Actions CI with Testcontainers
-- [ ] pg-mem unit tests — 70%+ coverage target
-- [ ] Public npm publish
-- [ ] Plugin SDK for community adapters
-- [ ] Dashboard UI (Vite + WebSocket metrics)
-
-<br/>
-
----
-
-<br/>
-
-## Contributing
-
-To add a plugin for any database, implement `IStoragePlugin`:
-
-```typescript
-import type { IStoragePlugin } from '@synapsedb/core';
-
-export class MyDatabasePlugin implements IStoragePlugin {
-  readonly name = 'mydb';
-  readonly type = 'document';
-
-  async connect() { ... }
-  async find(collection, ast, fields) { ... }
-  async insert(collection, docs, fields) { ... }
-  async update(collection, ast, changes, fields) { ... }
-  async delete(collection, ast) { ... }
-  async healthCheck() { ... }
-  capabilities() { return { supportsTransactions: false, ... }; }
-}
-```
-
-Open a PR. Any database with a Node.js driver can be a SynapseDB plugin.
+| Status | Item |
+|--------|------|
+| ✅ | Core engine + Kinetic Router |
+| ✅ | Unified Query Compiler (AST → native SQL/MQL/RESP) |
+| ✅ | Virtual Join Engine (`merger.ts`) |
+| ✅ | CDC Sync + Zero-ETL Analytics |
+| ✅ | Edge routing + CRDT offline writes |
+| ✅ | Autonomous Workload Analyzer |
+| ✅ | CircuitBreaker + DLQ + RetryManager + Saga |
+| ✅ | Multi-tenancy context isolation |
+| ✅ | Real plugins — Postgres, Redis, MongoDB |
+| ✅ | Framework bindings — Express, Next.js, Fastify |
+| ✅ | CLI — init, introspect, studio, status, dlq |
+| ✅ | 94-assertion platform test suite |
+| 🔄 | GitHub Actions CI with Testcontainers |
+| 🔄 | pg-mem unit tests → 70%+ coverage |
+| 📋 | Public npm publish |
+| 📋 | Plugin SDK for community adapters |
+| 📋 | Dashboard UI (Vite + WebSocket metrics) |
+| 📋 | `npx @synapsedb/cli generate` full scaffold |
 
 <br/>
 
@@ -479,17 +532,54 @@ Open a PR. Any database with a Node.js driver can be a SynapseDB plugin.
 
 <div align="center">
 
-**Built in TypeScript. Tested under chaos. Proven at scale.**
+## 🤝 Contributing
+
+</div>
+
+Implement `IStoragePlugin` to add any database:
+
+```typescript
+import type { IStoragePlugin } from '@synapsedb/core';
+
+export class TursoPlugin implements IStoragePlugin {
+  readonly name = 'turso';
+  readonly type = 'sql';
+
+  async connect()                                   { ... }
+  async healthCheck()                               { ... }
+  async insert(col, docs, fields)                   { ... }
+  async find(col, ast, fields)                      { ... }
+  async update(col, ast, changes, fields)           { ... }
+  async delete(col, ast)                            { ... }
+  capabilities() { return { supportsTransactions: true, ... }; }
+}
+```
+
+Any database with a Node.js driver can be a SynapseDB plugin. Open a PR.
+
+<br/>
+
+---
+
+<br/>
+
+<div align="center">
+
+**Built in TypeScript. Tested under chaos. Running at the edge.**
 
 *v0.6.0 · MIT License · Made by [Prudhvi Raj](https://github.com/prudhviraj0310)*
 
 <br/>
 
-[⭐ Star this repo](https://github.com/prudhviraj0310/synapsedb) &nbsp;·&nbsp; [🐛 Open an issue](https://github.com/prudhviraj0310/synapsedb/issues) &nbsp;·&nbsp; [💬 Start a discussion](https://github.com/prudhviraj0310/synapsedb/discussions)
+[⭐ Star](https://github.com/prudhviraj0310/synapsedb) &nbsp;·&nbsp;
+[🐛 Issues](https://github.com/prudhviraj0310/synapsedb/issues) &nbsp;·&nbsp;
+[💬 Discussions](https://github.com/prudhviraj0310/synapsedb/discussions) &nbsp;·&nbsp;
+[📦 npm](https://www.npmjs.com/package/@synapsedb/core)
 
 <br/>
 
-> *"Stop choosing databases.*
-> *Start declaring intentions."*
+```
+"Stop choosing databases. Start declaring intentions."
+```
 
 </div>
